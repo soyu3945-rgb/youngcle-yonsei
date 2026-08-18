@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="원어민이 교정해준 문장/단어 발음 피드백을 직접 입력하고, 듣기+따라 말하기(쉐도잉)로 연습하는 도구">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/png" href="images/youngkle-logo.png">
+<link rel="canonical" href="https://youngcle-yonsei.netlify.app/shadowing.html">
+<title>쉐도잉 연습장 | 영클원어민영어회화</title>
+<style>
+  :root{
+    --bg:#FAF6EC; --panel:#FFFFFF; --panel2:#FFFFFF; --border:#EAE1C8;
+    --input-bg:#FBF9F2;
+    --text:#1B2A4E; --body-text:#3C4257; --muted:#7C7566;
+    --accent:#C9A227; --accent-light:#E8CE73; --accent2:#1B2A4E;
+    --good:#1E8E5A; --bad:#C4453A; --warn:#B9790A;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Pretendard,Roboto,sans-serif;
+    background:var(--bg);
+    color:var(--body-text); min-height:100vh; padding:0 0 80px;
+  }
+  .wrap{max-width:880px; margin:0 auto; padding:0 16px;}
+  header{
+    background:var(--panel); border-bottom:1px solid var(--border);
+    padding:20px 16px; margin-bottom:28px;
+  }
+  header .wrap{padding:0 16px;}
+  h1{font-size:1.4rem; margin:0 0 6px; font-weight:800; letter-spacing:-0.02em; color:var(--text);}
+  .sub{color:var(--muted); font-size:0.9rem; line-height:1.55;}
+  .card{
+    background:var(--panel);
+    border:1px solid var(--border); border-top:3px solid var(--accent); border-radius:var(--radius);
+    padding:22px; margin-bottom:20px; box-shadow:0 8px 20px rgba(27,42,78,0.06);
+  }
+  .card h2{font-size:1.02rem; margin:0 0 4px; display:flex; align-items:center; gap:8px; color:var(--text); font-weight:800;}
+  .card .card-desc{color:var(--muted); font-size:0.85rem; margin-bottom:16px;}
+  label{display:block; font-size:0.8rem; color:var(--muted); margin-bottom:6px; font-weight:700;}
+  input[type=text], textarea{
+    width:100%; resize:vertical;
+    background:var(--input-bg); border:1px solid var(--border); border-radius:10px;
+    color:var(--text); padding:10px 12px; font-size:0.95rem; line-height:1.5;
+    font-family:inherit; outline:none;
+  }
+  input[type=text]:focus, textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(201,162,39,0.15);}
+  .field{margin-bottom:12px;}
+  .row{display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; align-items:center;}
+  button{
+    cursor:pointer; border:none; border-radius:10px; padding:10px 16px;
+    font-size:0.9rem; font-weight:700; font-family:inherit; transition:transform .08s ease, opacity .15s ease;
+  }
+  button:active{transform:scale(0.97);}
+  button:disabled{opacity:0.45; cursor:not-allowed;}
+  .btn-primary{background:var(--accent); color:#1B1503; box-shadow:0 4px 10px rgba(201,162,39,0.35);}
+  .btn-primary:hover{background:var(--accent-light);}
+  .btn-ghost{background:var(--panel); color:var(--text); border:1px solid var(--border);}
+  .btn-danger{background:#FBEAE8; color:var(--bad); border:1px solid #F0C6C1;}
+  .btn-small{padding:6px 11px; font-size:0.78rem;}
+  .list{display:flex; flex-direction:column; gap:12px; margin-top:6px;}
+  .empty{color:var(--muted); font-size:0.85rem; padding:10px 2px;}
+  .item{
+    background:var(--input-bg); border:1px solid var(--border); border-radius:12px; padding:14px 16px;
+  }
+  .x-line{font-size:0.85rem; color:var(--bad); text-decoration:line-through; opacity:0.8; margin-bottom:6px;}
+  .o-line{font-size:1.02rem; margin-bottom:6px; line-height:1.5; color:var(--text); font-weight:600;}
+  .word-line{font-size:1.15rem; font-weight:800; margin-bottom:6px; color:var(--text);}
+  .kr-meaning{margin:-2px 0 8px; font-size:0.86rem; color:var(--muted);}
+  .explain-block{margin:0 0 10px; font-size:0.84rem; color:var(--body-text); line-height:1.6; background:#FCF6E3; border:1px solid #EFE0AE; border-radius:8px; padding:10px 12px; white-space:pre-line;}
+  .kr-text{color:var(--text);}
+  .kr-text-retry{color:var(--bad); cursor:pointer; text-decoration:underline dotted;}
+  .controls{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  select{
+    background:var(--input-bg); color:var(--text); border:1px solid var(--border); border-radius:8px;
+    padding:7px 10px; font-size:0.82rem; font-family:inherit;
+  }
+  .score-badge{
+    display:inline-flex; align-items:center; gap:6px; font-size:0.85rem; font-weight:700;
+    padding:4px 10px; border-radius:999px; margin-left:auto;
+  }
+  .score-badge.good{background:#E4F5EC; color:var(--good);}
+  .score-badge.mid{background:#FCF1DA; color:var(--warn);}
+  .score-badge.bad{background:#FBEAE8; color:var(--bad);}
+  .repeat-count-badge{
+    display:inline-flex; align-items:center; gap:6px; font-size:0.85rem; font-weight:700;
+    padding:4px 10px; border-radius:999px; background:#EFEAFB; color:var(--accent2);
+  }
+  .word-compare{margin-top:10px; font-size:0.95rem; line-height:2.1;}
+  .word-compare span{padding:2px 6px; border-radius:6px; margin-right:2px; display:inline-block;}
+  .w-ok{background:#E4F5EC; color:var(--good);}
+  .w-miss{background:#FBEAE8; color:var(--bad); text-decoration:line-through;}
+  .w-extra{background:#FCF1DA; color:var(--warn);}
+  .heard{margin-top:8px; font-size:0.82rem; color:var(--muted);}
+  .rec-dot{
+    display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--bad);
+    margin-right:6px; animation:pulse 1s infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.25;}}
+  .item-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  footer{color:var(--muted); font-size:0.78rem; text-align:center; margin-top:28px; line-height:1.6;}
+  code{background:var(--input-bg); border:1px solid var(--border); padding:1px 6px; border-radius:5px; font-size:0.85em; color:var(--text);}
+  details{margin-top:8px;}
+  summary{cursor:pointer; color:var(--accent2); font-size:0.85rem; font-weight:700;}
+  .export-box{margin-top:12px;}
+  .export-box textarea{min-height:110px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:0.82rem;}
+  .variant-details{margin-top:12px; border-top:1px dashed var(--border); padding-top:10px;}
+  .variant-details summary{cursor:pointer; font-size:0.83rem; font-weight:700; color:var(--accent2);}
+  .variant-item{background:var(--bg); border:1px dashed var(--border); border-radius:10px; margin-top:8px; padding:10px 12px;}
+  .variant-item .o-line{font-size:0.92rem; margin-bottom:4px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding:0 16px;">
+    <a href="index.html" style="display:inline-block; margin-bottom:8px; font-size:0.85rem; color:var(--muted); text-decoration:none;">← 영클원어민영어회화 홈으로</a>
+    <h1>🗣️ 원어민 피드백 쉐도잉 연습장</h1>
+    <div class="sub">수업에서 원어민이 교정해준 문장(x → o)이나 발음 지적을 받은 단어를 직접 입력하면,
+    듣기(TTS)와 따라 말하기(음성 인식)로 쉐도잉 연습을 할 수 있어요. (Chrome 브라우저 권장 — 마이크 권한 필요)</div>
+  </div>
+</header>
+<div class="wrap">
+
+  <div class="card" id="secureWarning" style="display:none; border-top-color:var(--warn); background:#FCF1DA;">
+    <h2 style="margin-bottom:6px;">⚠️ 마이크 기능 안내</h2>
+    <div class="sub" style="margin:0;">이 페이지가 <code>https://</code> 주소가 아니라서, "따라 말하기"(마이크)는 브라우저 보안 정책상 작동하지 않거나, 마이크를 "허용"해도 계속 다시 물어볼 수 있어요(크롬이 file:// 페이지의 마이크 허용 상태를 저장하지 못하기 때문). 듣기(TTS)는 정상 작동합니다.<br>
+    마이크 기능을 안정적으로 쓰려면 이 파일을 Netlify 같은 https 주소로 배포해서 사용해주세요(같이 보내드린 배포 가이드 참고).</div>
+  </div>
+
+  <!-- ============ 문장 교정 쉐도잉 ============ -->
+  <div class="card">
+    <h2>① 문장 교정 쉐도잉</h2>
+    <div class="card-desc">원어민 피드백을 한 번에 여러 개 붙여넣거나, 한 쌍씩 추가할 수 있어요. ⚠️ 아래 "한 번에 추가"는 기존 문장 목록을 지우고 새로 붙여넣은 내용으로만 교체합니다.<br>✨ 교정된 문장마다 비슷한 표현 4개를 자동으로 만들어드려요(사전 기반 · AI 미사용 · 100% 무료). 각 표현도 그대로 듣기/따라 말하기 연습이 가능합니다.</div>
+
+    <label for="bulkPasteArea">📋 여러 개 한 번에 붙여넣기 (한 줄에 문장 하나씩, "o:" 접두어는 없어도 됨)</label>
+    <textarea id="bulkPasteArea" placeholder="I stayed at home today.
+My family, my friends, delicious food, and playing games make me excited.
+I feel proud of myself when I get a perfect score.
+
+(또는 아래처럼 틀린 문장도 같이 넣고 싶으면 x:/o: 형식으로)
+x: Yes.
+o: I stayed at home today."></textarea>
+    <label style="display:flex; align-items:flex-start; gap:8px; font-weight:400; margin-top:10px; cursor:pointer;">
+      <input type="checkbox" id="pairModeCheckbox" checked style="margin-top:3px;">
+      <span style="font-size:0.82rem; color:var(--muted);">접두어 없이 <b>두 줄씩 짝</b>으로 되어 있어요 (홀수 줄 = 틀린 문장, 짝수 줄 = 맞는 문장). 체크하면 화면에는 맞는 문장만 보이고, 문법 해석은 그대로 만들어드려요. (기본으로 켜져 있어요 — 이미 맞는 문장들만 쭉 나열할 때는 체크를 꺼주세요.)</span>
+    </label>
+    <div class="row">
+      <button class="btn-primary" id="bulkAddBtn">📋 붙여넣은 내용으로 새로 만들기</button>
+    </div>
+    <div class="status" id="bulkStatus" style="font-size:0.82rem; color:var(--muted); margin-top:8px;"></div>
+
+    <details>
+      <summary>또는 한 쌍씩 직접 입력하기</summary>
+      <div style="margin-top:12px;">
+        <div class="field">
+          <label for="xInput">✗ 틀린 문장 (선택 — 비워도 됨)</label>
+          <input type="text" id="xInput" placeholder="예: My family, my friends, delicious food, and playing game.">
+        </div>
+        <div class="field">
+          <label for="oInput">✓ 교정된 문장 (필수)</label>
+          <input type="text" id="oInput" placeholder="예: My family, my friends, delicious food, and playing games make me excited.">
+        </div>
+        <div class="row">
+          <button class="btn-ghost" id="addSentenceBtn">➕ 문장 추가</button>
+        </div>
+      </div>
+    </details>
+
+    <div class="list" id="sentenceList" style="margin-top:16px;"></div>
+    <div class="empty" id="sentenceEmpty">아직 추가된 문장이 없어요.</div>
+  </div>
+
+  <!-- ============ 단어 발음 연습 ============ -->
+  <div class="card">
+    <h2>② 단어 발음 연습장</h2>
+    <div class="card-desc">발음이 틀렸다고 피드백받은 단어를 추가하고, 듣기 + 따라 말하기로 연습하세요. 여러 단어를 한 번에 붙여넣으면 단어마다 각각 카드가 만들어져요. ⚠️ 아래 "한 번에 추가"는 기존 단어 목록을 지우고 새로 붙여넣은 단어로만 교체합니다.</div>
+
+    <label for="bulkWordArea">📋 여러 단어 한 번에 붙여넣기 (줄바꿈, 쉼표, 띄어쓰기 중 아무거나로 구분해도 돼요)</label>
+    <textarea id="bulkWordArea" placeholder="comfortable
+vegetable, particularly
+schedule"></textarea>
+    <div class="row">
+      <button class="btn-primary" id="bulkWordAddBtn">📋 붙여넣은 단어로 새로 만들기</button>
+    </div>
+    <div class="status" id="bulkWordStatus" style="font-size:0.82rem; color:var(--muted); margin-top:8px;"></div>
+
+    <details>
+      <summary>또는 한 단어씩 직접 입력하기</summary>
+      <div style="margin-top:12px;">
+        <div class="field">
+          <label for="wordInput">발음 연습할 단어</label>
+          <input type="text" id="wordInput" placeholder="예: comfortable">
+        </div>
+        <div class="row">
+          <button class="btn-ghost" id="addWordBtn">➕ 단어 추가</button>
+        </div>
+      </div>
+    </details>
+
+    <div class="list" id="wordList" style="margin-top:16px;"></div>
+    <div class="empty" id="wordEmpty">아직 추가된 단어가 없어요.</div>
+  </div>
+
+  <!-- ============ 내보내기 / 백업 복원 ============ -->
+  <div class="card">
+    <h2>💾 전체 백업 (문장 + 단어)</h2>
+    <div class="card-desc">이 페이지는 새로고침하면 목록이 사라져요. 아래 "내보내기"로 문장+단어 전체를 텍스트로 복사해 메모장 등에 저장해두었다가, 다음에 그 텍스트를 붙여넣고 "가져오기"를 누르면 그대로 복원됩니다.</div>
+    <div class="row">
+      <button class="btn-ghost btn-small" id="exportBtn">📤 현재 목록 내보내기</button>
+    </div>
+    <div class="export-box">
+      <textarea id="exportArea" placeholder="여기에 저장해둔 백업 텍스트를 붙여넣고 '가져오기'를 누르세요."></textarea>
+      <div class="row">
+        <button class="btn-ghost btn-small" id="importBtn">📥 가져오기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 전체 요약 (복사용) ============ -->
+  <div class="card">
+    <h2>📋 전체 요약 (복사용)</h2>
+    <div class="card-desc">모든 문장의 교정 전/후, 문법 해석을 한 번에 모아서 볼 수 있어요. 아래 내용을 그대로 복사해서 노트나 문서에 붙여넣을 수 있습니다.</div>
+    <textarea id="summaryArea" readonly style="min-height:240px; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:0.82rem; white-space:pre-wrap;"></textarea>
+    <div class="row">
+      <button class="btn-primary btn-small" id="copySummaryBtn">📋 전체 복사하기</button>
+    </div>
+    <div class="status" id="copyStatus" style="font-size:0.82rem; color:var(--muted); margin-top:8px;"></div>
+  </div>
+
+  <footer>
+    ⓘ 한글 번역은 <a href="https://mymemory.translated.net" style="color:var(--accent);" target="_blank" rel="noopener">MyMemory</a> 무료 번역 API를 사용합니다 (네트워크 필요, 실패 시 번역이 표시되지 않을 수 있어요).<br>
+    ⓘ 듣기(TTS)와 발음 인식(STT)은 브라우저의 Web Speech API를 사용하며, Chrome 데스크톱에서 가장 안정적으로 동작합니다.<br>
+    ⓘ 문법 설명은 외부 API 없이 이 페이지 안에서 규칙 기반으로 자동 생성되는 근사치입니다.
+  </footer>
+</div>
+
+<script>
+/* ===================== 공통 유틸 ===================== */
+
+function escapeHTML(s){ return s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+const translationCache = new Map();
+// MyMemory는 키 없이 쓰는 무료 API라 가끔 응답이 늦거나(타임아웃), 순간적으로 요청이 몰려 실패할 때가 있어요.
+// 그래서 한 번 실패해도 바로 포기하지 않고 몇 번 더 재시도합니다.
+async function translateOnce(text, target, source, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${source}|${target}`;
+    const resp = await fetch(url, { signal: controller.signal });
+    if (!resp.ok) throw new Error('translate HTTP ' + resp.status);
+    const data = await resp.json();
+    const translated = data && data.responseData && data.responseData.translatedText;
+    if (!translated) throw new Error('empty translation');
+    // MyMemory는 하루 무료 사용량을 넘기면 200 OK와 함께 "MYMEMORY WARNING..." 같은 문구를 번역 결과인 것처럼 돌려줘요. 이건 실제 번역이 아니므로 실패로 처리합니다.
+    if (/mymemory warning|invalid|quota/i.test(translated)) throw new Error('quota/limit response: ' + translated);
+    return translated;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// 번역 span을 채워주는 공통 헬퍼. 실패하면 클릭해서 다시 시도할 수 있는 링크를 보여줍니다.
+function loadTranslationInto(krSpan, text) {
+  if (!krSpan) return;
+  krSpan.textContent = '번역 중...';
+  translateText(text).then(tr => {
+    if (!krSpan.isConnected) return; // 목록이 이미 다시 그려져서 이 span이 화면에서 사라진 경우
+    if (tr) {
+      krSpan.textContent = tr;
+      krSpan.classList.remove('kr-text-retry');
+      krSpan.onclick = null;
+    } else {
+      krSpan.textContent = '번역 실패 (인터넷 연결을 확인하고 클릭하면 다시 시도해요) 🔄';
+      krSpan.classList.add('kr-text-retry');
+      krSpan.onclick = () => loadTranslationInto(krSpan, text);
+    }
+  });
+}
+
+async function translateText(text, target = 'ko', source = 'en', retries = 2) {
+  if (!text || !text.trim()) return '';
+  const key = `${source}|${target}|${text}`;
+  if (translationCache.has(key)) return translationCache.get(key);
+  let lastErr = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const translated = await translateOnce(text, target, source, 6000);
+      translationCache.set(key, translated);
+      return translated;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+    }
+  }
+  console.warn('translation failed after retries:', lastErr);
+  return null;
+}
+
+const hasTTS = 'speechSynthesis' in window;
+const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+const hasSTT = !!SpeechRecognitionCtor;
+const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+// 마이크 권한을 페이지당 한 번만 물어보도록, getUserMedia로 스트림을 미리 받아서 페이지가 열려있는
+// 동안 계속 붙잡아 둡니다(트랙을 stop하지 않음). 이렇게 하면 브라우저가 마이크를 "계속 사용 중"으로
+// 인식해서, 카드마다/반복마다 음성인식(SpeechRecognition)을 새로 시작해도 권한을 또 묻는 일이 줄어요.
+// (단, file://로 직접 연 경우는 크롬이 마이크 권한 자체를 저장하지 못하는 근본적인 한계가 있어서
+// 완전히 사라지지 않을 수 있어요 — 이 문제는 https로 배포하면 확실히 해결됩니다.)
+let micWarmupPromise = null;
+function warmupMic() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return Promise.resolve(null);
+  if (!micWarmupPromise) {
+    micWarmupPromise = navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null);
+  }
+  return micWarmupPromise;
+}
+
+// Word-level alignment between target text and recognized speech (LCS-based diff + match score).
+function compareWords(target, heard) {
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9'\s]/g, '').split(/\s+/).filter(Boolean);
+  const tw = norm(target);
+  const hw = norm(heard);
+  const dp = Array.from({length: tw.length + 1}, () => new Array(hw.length + 1).fill(0));
+  for (let i = tw.length - 1; i >= 0; i--)
+    for (let j = hw.length - 1; j >= 0; j--)
+      dp[i][j] = tw[i] === hw[j] ? dp[i+1][j+1] + 1 : Math.max(dp[i+1][j], dp[i][j+1]);
+
+  let i = 0, j = 0, html = '', matched = 0;
+  while (i < tw.length && j < hw.length) {
+    if (tw[i] === hw[j]) { html += `<span class="w-ok">${escapeHTML(tw[i])}</span>`; matched++; i++; j++; }
+    else if (dp[i+1][j] >= dp[i][j+1]) { html += `<span class="w-miss">${escapeHTML(tw[i])}</span>`; i++; }
+    else { html += `<span class="w-extra">${escapeHTML(hw[j])}</span>`; j++; }
+  }
+  while (i < tw.length) { html += `<span class="w-miss">${escapeHTML(tw[i])}</span>`; i++; }
+  while (j < hw.length) { html += `<span class="w-extra">${escapeHTML(hw[j])}</span>`; j++; }
+
+  const score = tw.length ? Math.round((matched / tw.length) * 100) : 0;
+  return { score, html };
+}
+
+// Builds the shared "듣기 / 따라 말하기" control block + wires up its behavior.
+// targetText = the text to listen to / compare pronunciation against.
+function buildShadowingControls(targetText) {
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="controls">
+      <select class="rate-select">
+        <option value="1">보통 속도</option>
+        <option value="0.8" selected>약간 천천히</option>
+        <option value="0.6">천천히</option>
+      </select>
+      <span class="repeat-field" style="display:flex; align-items:center; gap:4px;">
+        <input type="number" class="repeat-input" min="1" max="30" value="1" style="width:52px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:6px 8px; font-size:0.82rem; font-family:inherit;">
+        <span style="font-size:0.78rem; color:var(--muted);">회 반복</span>
+      </span>
+      <button class="btn-primary btn-small mic-btn" ${hasSTT ? '' : 'disabled title="이 브라우저는 음성 인식을 지원하지 않습니다(Chrome 권장)"'}>🎙️ 따라 말하기</button>
+      <button class="btn-ghost btn-small listen-btn" ${hasTTS ? '' : 'disabled title="이 브라우저는 TTS를 지원하지 않습니다"'}>🔊 듣기 시작</button>
+      <span class="repeat-count-badge" style="display:none;"></span>
+      <span class="score-badge" style="display:none;"></span>
+    </div>
+    <div class="heard" style="display:none;"></div>
+    <div class="word-compare"></div>
+  `;
+  const listenBtn = wrap.querySelector('.listen-btn');
+  const rateSelect = wrap.querySelector('.rate-select');
+  const repeatInput = wrap.querySelector('.repeat-input');
+  const micBtn = wrap.querySelector('.mic-btn');
+  const scoreBadge = wrap.querySelector('.score-badge');
+  const repeatCountBadge = wrap.querySelector('.repeat-count-badge');
+  const heardEl = wrap.querySelector('.heard');
+  const compareEl = wrap.querySelector('.word-compare');
+
+  let playState = { stopped: true };
+  let micState = { stopped: true, activeRecognition: null, pendingResume: null };
+  let shadowingCount = 0; // "따라 말하기"로 마이크에 목소리가 인식된 횟수(이 카드 한정, 페이지를 새로고침하면 0으로 돌아갑니다)
+
+  function speakOnce(rate) {
+    return new Promise(resolve => {
+      const utter = new SpeechSynthesisUtterance(targetText);
+      utter.lang = 'en-US';
+      utter.rate = rate;
+      const voices = window.speechSynthesis.getVoices();
+      const enVoice = voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en'));
+      if (enVoice) utter.voice = enVoice;
+      utter.onend = resolve;
+      utter.onerror = resolve;
+      window.speechSynthesis.speak(utter);
+    });
+  }
+
+  listenBtn.addEventListener('click', async () => {
+    if (!hasTTS) return;
+
+    // Clicking again while playing stops the remaining repeats.
+    if (!playState.stopped) {
+      playState.stopped = true;
+      window.speechSynthesis.cancel();
+      listenBtn.textContent = '🔊 듣기 시작';
+      return;
+    }
+
+    // 다른 카드에서 재생하다 만 소리가 남아있으면 먼저 정리해서, 지금 누른 카드의 문장만 재생되게 합니다.
+    window.speechSynthesis.cancel();
+
+    let count = parseInt(repeatInput.value, 10);
+    if (!count || count < 1) count = 1;
+    if (count > 30) count = 30;
+    repeatInput.value = count;
+
+    playState = { stopped: false };
+    const rate = parseFloat(rateSelect.value);
+
+    for (let i = 1; i <= count; i++) {
+      if (playState.stopped) break;
+      listenBtn.textContent = count > 1 ? `⏹ 정지 (${i}/${count})` : '⏹ 정지';
+      await speakOnce(rate);
+      if (playState.stopped) break;
+      if (i < count) await new Promise(r => setTimeout(r, 500)); // 반복 사이 짧은 텀
+    }
+    playState.stopped = true;
+    listenBtn.textContent = '🔊 듣기 시작';
+  });
+
+  // 이 카드용 SpeechRecognition 인스턴스를 한 번만 만들어서 계속 재사용합니다. 반복(회 반복)마다,
+  // 또는 "따라 말하기"를 여러 번 눌러도 매번 새 인스턴스를 만들지 않게 해서, 크롬이 마이크 권한을
+  // 다시 물어보는 빈도를 크게 줄여줍니다.
+  let sharedRecognition = null;
+  function getSharedRecognition() {
+    if (!sharedRecognition) {
+      sharedRecognition = new SpeechRecognitionCtor();
+      sharedRecognition.lang = 'en-US';
+      sharedRecognition.interimResults = false;
+      sharedRecognition.maxAlternatives = 1;
+    }
+    return sharedRecognition;
+  }
+
+  // 마이크 인식 한 번을 실행하고, 결과(인식 성공/실패)를 Promise로 돌려줍니다.
+  // onReady: 마이크가 실제로 듣기 시작한 순간(브라우저의 onstart 이벤트)에 호출됩니다.
+  // 이 콜백이 오기 전까지는 화면에 "듣는 중"이라고 표시하지 않아야, 학생이 실제로 녹음이
+  // 시작되기 전에 말해버려서 앞부분을 놓치는 일(특히 안드로이드에서 no-speech 오류로 이어짐)을 줄일 수 있습니다.
+  function runOneRecognition(onReady) {
+    return new Promise((resolve) => {
+      let settled = false;
+      const settle = (val) => { if (!settled) { settled = true; resolve(val); } };
+
+      const recognition = getSharedRecognition();
+      micState.activeRecognition = recognition;
+
+      let heard = null;
+      recognition.onstart = () => { if (onReady) onReady(); };
+      recognition.onresult = (event) => { heard = event.results[0][0].transcript; };
+      recognition.onerror = (event) => { if (!heard) settle({ ok: false, error: event.error }); };
+      recognition.onend = () => { settle(heard ? { ok: true, heard } : { ok: false, error: 'no-speech' }); };
+      try { recognition.start(); }
+      catch (e) { settle({ ok: false, error: 'start-failed' }); }
+    });
+  }
+
+  function micPermissionErrorHTML(errorCode) {
+    if (errorCode === 'not-allowed' || errorCode === 'service-not-allowed') {
+      if (location.protocol === 'file:') {
+        // file://로 직접 연 페이지는 크롬이 마이크 권한을 저장해두지 못해서, "허용"을 눌러도 다음 번(또는 다음 카드)에 또 물어보는 경우가 많아요.
+        return '⚠️ 마이크 권한이 계속 다시 요청돼요. 이 파일을 직접 열어서 쓸 때(file://) 크롬이 마이크 허용 상태를 저장하지 못해서 생기는 문제예요.<br>'
+          + '해결 방법: 주소창의 🔒/카메라 아이콘을 눌러 "이 사이트에서 항상 허용"으로 바꿔보시거나, 안정적으로 쓰려면 이 파일을 Netlify 같은 https 주소로 배포해서 사용해주세요(배포 가이드 참고). 듣기(TTS)는 이 문제와 상관없이 그대로 사용하실 수 있어요.';
+      }
+      return '⚠️ 마이크 권한이 거부됐어요. 주소창의 🔒 아이콘을 눌러 마이크 권한을 "허용"으로 바꾼 뒤 다시 시도해주세요.';
+    }
+    return null;
+  }
+
+  micBtn.addEventListener('click', () => {
+    if (!hasSTT) return;
+
+    // 진행 중일 때 다시 누르면 중단합니다.
+    if (!micState.stopped) {
+      micState.stopped = true;
+      if (micState.activeRecognition) { try { micState.activeRecognition.abort(); } catch (e) {} }
+      return;
+    }
+
+    // 모바일에서 "권한이 이미 있었는데 자동 반복 중 막힌" 경우, 이어서 할 시작 지점이 저장되어 있습니다.
+    let startIndex = 1;
+    let target;
+    if (micState.pendingResume) {
+      target = micState.pendingResume.target;
+      startIndex = micState.pendingResume.nextIndex;
+      micState.pendingResume = null;
+    } else {
+      // "회 반복"에 설정된 횟수만큼 마이크 인식을 반복합니다(듣기 반복 횟수와 같은 입력칸을 공유해요).
+      target = parseInt(repeatInput.value, 10);
+      if (!target || target < 1) target = 1;
+      if (target > 30) target = 30;
+    }
+
+    micState.stopped = false;
+    heardEl.style.display = 'none';
+    scoreBadge.style.display = 'none';
+    compareEl.innerHTML = '';
+
+    (async () => {
+      await warmupMic(); // 마이크 스트림을 미리 받아 붙잡아 둬서 권한 재요청을 줄입니다.
+      for (let i = startIndex; i <= target; i++) {
+        if (micState.stopped) break;
+        micBtn.innerHTML = `<span class="rec-dot"></span>마이크 준비 중... (${i}/${target})`;
+
+        const result = await runOneRecognition(() => {
+          // 마이크가 실제로 듣기 시작한 순간에만 "말씀하세요"로 바꿔서, 학생이 이 시점부터 말하게 합니다.
+          if (!micState.stopped) micBtn.innerHTML = `<span class="rec-dot"></span>🗣️ 지금 말씀하세요! (${i}/${target})`;
+        });
+        if (micState.stopped) break;
+
+        if (result.ok) {
+          shadowingCount++;
+          repeatCountBadge.style.display = 'inline-flex';
+          repeatCountBadge.textContent = `🗣️ 따라 말한 횟수 ${shadowingCount}`;
+
+          heardEl.style.display = 'block';
+          heardEl.textContent = `👂 인식된 발음 (${i}/${target}): "${result.heard}"`;
+          const { score, html } = compareWords(targetText, result.heard);
+          compareEl.innerHTML = html;
+          scoreBadge.style.display = 'inline-flex';
+          scoreBadge.textContent = `일치도 ${score}%`;
+          scoreBadge.className = 'score-badge ' + (score >= 85 ? 'good' : score >= 60 ? 'mid' : 'bad');
+        } else {
+          const permHTML = micPermissionErrorHTML(result.error);
+          heardEl.style.display = 'block';
+          if (permHTML) {
+            // 이 "재시작 시 다시 눌러야 하는" 우회는 모바일 브라우저에서만 적용합니다.
+            // 데스크탑 브라우저의 기존 동작(자동 반복)은 그대로 둡니다.
+            if (isMobileDevice && i > 1) {
+              // 이미 첫 시도에서는 마이크가 정상 작동했으므로, 진짜 권한 거부가 아니라
+              // 모바일 브라우저가 "사용자가 방금 직접 누른 동작"에서만 마이크를 다시 허용하는 정책 때문일 가능성이 높습니다.
+              heardEl.innerHTML = '📱 일부 모바일 브라우저는 보안 정책상 마이크를 자동으로 여러 번 연달아 켤 수 없어요. 아래 버튼을 다시 눌러서 이어가 주세요.';
+              micState.pendingResume = { nextIndex: i, target };
+            } else {
+              heardEl.innerHTML = permHTML;
+            }
+            break; // 권한 문제(또는 모바일 정책)는 반복해도 소용없으니 여기서 멈춥니다.
+          }
+          heardEl.textContent = `⚠️ ${i}번째 시도에서 소리를 인식하지 못했어요 (${result.error}). 계속 진행합니다.`;
+        }
+
+        if (!micState.stopped && i < target) await new Promise(r => setTimeout(r, 700)); // 다음 반복 전 짧은 텀(안드로이드는 마이크 재시작에 시간이 더 필요해서 조금 더 둡니다)
+      }
+      micState.stopped = true;
+      micState.activeRecognition = null;
+      micBtn.innerHTML = micState.pendingResume
+        ? `🎙️ 이어서 따라 말하기 (${micState.pendingResume.nextIndex}/${target})`
+        : '🎙️ 따라 말하기';
+    })();
+  });
+
+  return wrap;
+}
+
+if (hasTTS) window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+
+(function checkSecureContext(){
+  const isLocalhost = ['localhost','127.0.0.1'].includes(location.hostname);
+  const isSecure = location.protocol === 'https:' || isLocalhost;
+  if (!isSecure) document.getElementById('secureWarning').style.display = 'block';
+})();
+
+/* ===================== x: / o: / w: 텍스트 파서 (공용) ===================== */
+// "x: ...", "o: ...", "w: ..." 형식의 줄들을 파싱합니다. 헤더(# 문장 등)는 무시해도 되고 없어도 됩니다.
+// x/o/w 접두어는 콜론(x:)이나 하이픈(x-)이 있어도 없어도("x " 처럼 띄어쓰기만) 인식됩니다.
+// 단, 접두어 뒤에 콜론/하이픈이나 공백이 최소 하나는 있어야 인식돼요 (예: "xylophone"처럼 x로 시작하는
+// 일반 단어까지 접두어로 오인하지 않도록).
+const X_PREFIX_RE = /^x\s*(?:[:：\-－]\s*|\s+)/i;
+const O_PREFIX_RE = /^o\s*(?:[:：\-－]\s*|\s+)/i;
+const W_PREFIX_RE = /^w\s*(?:[:：\-－]\s*|\s+)/i;
+
+// pairMode: 접두어(x:/o:) 없는 줄들을 "두 줄씩 짝" (홀수=틀린 문장, 짝수=맞는 문장)으로 처리합니다.
+// 이때 만들어지는 카드는 hideX 표시를 붙여서, 화면에는 맞는 문장만 보이고(틀린 문장은 숨김)
+// 문법 해석(explainDifference)은 기존처럼 두 문장을 다 이용해서 그대로 만들어줍니다.
+function parseFeedbackBlock(text, pairMode) {
+  const lines = text.split('\n');
+  const newSentences = [];
+  const newWords = [];
+  let pendingX = '';
+  let pendingPairX = null; // pairMode에서만 사용: 접두어 없는 줄 중 아직 짝이 안 지어진 "틀린 문장" 줄
+  lines.forEach(raw => {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) return;
+    if (X_PREFIX_RE.test(line)) {
+      pendingX = line.replace(X_PREFIX_RE, '');
+    } else if (O_PREFIX_RE.test(line)) {
+      const o = line.replace(O_PREFIX_RE, '');
+      if (o) newSentences.push({ x: pendingX, o });
+      pendingX = '';
+    } else if (W_PREFIX_RE.test(line)) {
+      const w = line.replace(W_PREFIX_RE, '');
+      if (w) newWords.push(w);
+    } else if (pairMode) {
+      if (pendingPairX === null) {
+        pendingPairX = line;
+      } else {
+        newSentences.push({ x: pendingPairX, o: line, hideX: true });
+        pendingPairX = null;
+      }
+    } else {
+      // 접두어 없이 그냥 문장만 한 줄씩 있는 경우 — 바로 앞에 x 줄이 있었으면 그 줄과 짝을 짓고,
+      // 없었으면 교정 문장(o)으로만 취급합니다.
+      newSentences.push({ x: pendingX, o: line });
+      pendingX = '';
+    }
+  });
+  // pairMode에서 마지막 줄이 짝을 못 찾은 채로 남아있으면(홀수 개), 버리지 않고 맞는 문장 하나로 살립니다.
+  if (pendingPairX !== null) {
+    newSentences.push({ x: '', o: pendingPairX });
+  }
+  return { newSentences, newWords };
+}
+
+
+/* ===================== 문법 설명 엔진 (오프라인, 패턴 기반) ===================== */
+// 교정 전(x)/후(o) 문장을 비교해서, 왜 x가 어색했는지 한글로 설명합니다.
+// 완벽한 문법 분석기가 아니라 자주 나오는 ESL 실수 패턴을 잡아내는 규칙 기반 근사치입니다.
+
+function normWords(s) {
+  return s.toLowerCase().replace(/[.,!?;:]/g, '').split(/\s+/).filter(Boolean);
+}
+
+const BE_VERBS = ['am','is','are','was','were','be','been','being'];
+const AUX_VERBS = ['do','does','did','have','has','had','will','would','can','could','should','must','may','might','shall'];
+const MODAL_TO_PHRASES = ["have to","has to","had to","need to","needs to","want to","wants to","going to","used to","try to","tries to","love to","like to","plan to","planning to","decide to","decided to"];
+const PREPOSITIONS = ['to','at','in','on','for','of','with','from','by','about','into','onto','over','under','between','among','through','during','after','before','around','near','without','against','toward','towards','across'];
+const ARTICLES = ['a','an','the'];
+const PRONOUNS = ['i','you','he','she','it','we','they','me','him','her','us','them','this','that','these','those'];
+const COMMON_VERBS = ['go','goes','went','come','comes','came','get','gets','got','take','takes','took','make','makes','made','do','does','did','have','has','had','eat','eats','ate','play','plays','played','study','studies','studied','work','works','worked','watch','watches','watched','meet','meets','met','see','sees','saw','visit','visits','visited','buy','buys','bought','read','reads','stay','stays','stayed','feel','feels','felt','think','thinks','thought','know','knows','knew','say','says','said','tell','tells','told','give','gives','gave','use','uses','used','find','finds','found','want','wants','wanted','need','needs','needed','try','tries','tried','call','calls','called','ask','asks','asked','wear','wears','wore','sleep','sleeps','slept','run','runs','ran','walk','walks','walked','talk','talks','talked','speak','speaks','spoke','write','writes','wrote','listen','listens','listened','live','lives','lived'];
+const VERB_HINTS_SUFFIX = /(ed|ing|s)$/;
+
+function isPrep(w){ return PREPOSITIONS.includes(w); }
+function isArticle(w){ return ARTICLES.includes(w); }
+function isBe(w){ return BE_VERBS.includes(w); }
+function isAux(w){ return AUX_VERBS.includes(w); }
+function isPronoun(w){ return PRONOUNS.includes(w); }
+function looksLikeVerb(w){ return COMMON_VERBS.includes(w) || isBe(w) || isAux(w) || VERB_HINTS_SUFFIX.test(w); }
+
+// 두 단어 배열의 LCS(최장 공통 부분수열)를 구해서, x→o로 가는 편집 연산(동일/삭제/삽입/교체) 목록을 만듭니다.
+function diffWordOps(xw, ow) {
+  const n = xw.length, m = ow.length;
+  const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = xw[i] === ow[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  const raw = [];
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (xw[i] === ow[j]) { raw.push({ type: 'same', xw: xw[i], ow: ow[j] }); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) { raw.push({ type: 'del', xw: xw[i] }); i++; }
+    else { raw.push({ type: 'ins', ow: ow[j] }); j++; }
+  }
+  while (i < n) { raw.push({ type: 'del', xw: xw[i] }); i++; }
+  while (j < m) { raw.push({ type: 'ins', ow: ow[j] }); j++; }
+
+  // 연속된 del + ins 를 하나의 '교체(replace)' 블록으로 합칩니다.
+  const ops = [];
+  let k = 0;
+  while (k < raw.length) {
+    if (raw[k].type === 'same') { ops.push({ type: 'same', words: [raw[k].xw] }); k++; continue; }
+    let dels = [], inss = [];
+    while (k < raw.length && raw[k].type === 'del') { dels.push(raw[k].xw); k++; }
+    while (k < raw.length && raw[k].type === 'ins') { inss.push(raw[k].ow); k++; }
+    if (dels.length && inss.length) ops.push({ type: 'replace', from: dels, to: inss });
+    else if (dels.length) ops.push({ type: 'delete', words: dels });
+    else if (inss.length) ops.push({ type: 'insert', words: inss });
+  }
+  return ops;
+}
+
+function describeReplace(fromArr, toArr) {
+  const from = fromArr.join(' '), to = toArr.join(' ');
+  // 시제 쌍
+  const TENSE_PAIRS = [["don't","didn't"],["doesn't","didn't"],["isn't","wasn't"],["aren't","weren't"],
+    ["is","was"],["are","were"],["am","was"],["do","did"],["does","did"],["will","would"]];
+  for (const [pres, past] of TENSE_PAIRS) {
+    if (from === pres && to === past) {
+      return `📌 시제(때) 오류 — "${pres}" → "${past}"\n동사 "${pres}"는 현재 시제인데, 이 문장은 이미 지나간 일(과거)을 말하고 있어요. 영어는 동사 자체의 형태를 바꿔서 시제를 나타내므로, 과거의 일에는 반드시 과거형 "${past}"를 써야 해요. 한국어는 "나는 어제 학교에 가요"처럼 시간부사만 바꿔도 되지만, 영어는 그렇게 하면 문법 오류가 됩니다.`;
+    }
+  }
+  // 단수 -> 복수 (명사)
+  if (fromArr.length === 1 && toArr.length === 1) {
+    const f = fromArr[0], t = toArr[0];
+    if ((t === f + 's' || t === f + 'es') && !isBe(f) && !isAux(f) && !looksLikeVerb(f)) {
+      return `📌 명사의 수(단수/복수) 오류 — "${f}" → "${t}"\n영어 명사는 하나(단수)인지 여럿(복수)인지에 따라 형태가 달라져요. 가리키는 대상이 두 개 이상이라면 명사 끝에 -s(또는 -es)를 붙여 복수형으로 써야 해요. 한국어 명사는 단/복수에 따라 형태가 거의 바뀌지 않아서("사과 한 개"나 "사과 여러 개"나 둘 다 "사과") 한국인 학습자가 자주 놓치는 부분이에요.`;
+    }
+    // 주어-동사 수일치 (3인칭 단수 -s)
+    if ((t === f + 's' || t === f + 'es') && (looksLikeVerb(f) || looksLikeVerb(t))) {
+      return `📌 주어-동사 수일치 오류 — "${f}" → "${t}"\n주어가 3인칭 단수(he, she, it 또는 사람/사물 이름 하나)일 때, 현재 시제 동사에는 반드시 -s(또는 -es)를 붙여야 해요. 그래서 동사원형 "${f}"가 아니라 "${t}"가 맞는 형태예요. 주어가 I, you, we, they이거나 복수일 때는 -s를 붙이지 않는다는 점도 함께 기억해두세요.`;
+    }
+    if (isPrep(f) && isPrep(t)) {
+      return `📌 전치사 오류 — "${f}" → "${t}"\n전치사는 뜻이 비슷해 보여도 쓰임이 서로 다른 경우가 많아서, 문맥에 맞는 전치사를 골라 써야 해요. 이 문장에서는 "${f}"가 아니라 "${t}"를 쓰는 것이 관용적으로(원어민들이 실제로 쓰는 방식으로) 자연스러워요. 전치사는 규칙보다 표현 단위(연어, collocation)로 통째로 외워두는 게 좋아요.`;
+    }
+    if (isArticle(f) || isArticle(t)) {
+      return `📌 관사 오류 — "${f}" → "${t}"\n영어는 명사 앞에 무엇을 쓰는지(a/an, the, 또는 아무것도 안 씀)로 그 명사가 "특정한 것"인지 "막연한 하나"인지를 구분해요. 한국어에는 관사 개념이 없어서 자주 실수하는 부분인데, 여기서는 "${t}"를 쓰는 것이 맞아요.`;
+    }
+    if (isPronoun(f) || isPronoun(t)) {
+      return `📌 대명사/인칭 오류 — "${f}" → "${t}"\n문장 속 주어나 목적어 역할에 맞는 대명사 형태를 써야 해요. "${f}" 대신 "${t}"를 쓰는 것이 문맥(주격/목적격 또는 가리키는 대상)에 맞아요.`;
+    }
+    if (looksLikeVerb(f) && looksLikeVerb(t)) {
+      return `📌 동사 형태 오류 — "${f}" → "${t}"\n같은 동사라도 시제나 형태(원형/과거형/과거분사/-ing형 등)에 따라 모양이 달라져요. 이 문장의 시제·문형에 맞는 형태는 "${f}"가 아니라 "${t}"예요.`;
+    }
+    return `📌 단어 선택 오류 — "${f}" → "${t}"\n"${f}"라는 단어 자체가 틀린 것은 아니지만, 이 문맥에서는 "${t}"가 의미상 더 정확하고 원어민이 실제로 쓰는 자연스러운 표현이에요.`;
+  }
+  return `📌 표현 교체 — "${from}" → "${to}"\n이 부분은 단어 하나가 아니라 표현 전체가 더 자연스러운 말로 바뀌었어요. 한국어 표현을 단어 하나하나 그대로 영어로 옮기기보다, 영어에서 실제로 쓰이는 표현 덩어리(구/관용표현) 단위로 익혀두는 것이 좋아요.`;
+}
+
+function describeInsert(words, prevWord, nextWord) {
+  const phrase = words.join(' ');
+  if (words.length === 1) {
+    const w = words[0];
+    if (isPrep(w)) {
+      return `📌 전치사 "${w}" 누락\n"${prevWord || '(문장 앞부분)'}"과(와) "${nextWord || '(뒤 단어)'}" 사이에 전치사 "${w}"가 빠져 있었어요. 전치사는 명사(구)가 문장 속에서 시간·장소·방향·대상 등 어떤 역할을 하는지 표시해주는 말이라서, 빠지면 두 단어의 관계가 불명확해져요.`;
+    }
+    if (isArticle(w)) {
+      return `📌 관사 "${w}" 누락\n"${nextWord || '뒤에 오는 명사'}" 앞에 관사 "${w}"가 빠져 있었어요. 셀 수 있는 명사가 하나만 있을 때는 그 앞에 a/an(막연한 하나) 또는 the(특정한 것)를 반드시 붙여야 해요. 한국어에는 이런 관사가 없어서 한국인 학습자가 가장 자주 빠뜨리는 부분이에요.`;
+    }
+    if (isBe(w)) {
+      return `📌 be동사 "${w}" 누락\n주어 뒤에 be동사 "${w}"가 빠져 있었어요. 영어 문장은 "주어 + 동사"가 기본 골격이라서, 형용사나 명사로 끝나는 서술(예: "행복하다", "학생이다")을 하려면 반드시 be동사가 있어야 해요. 한국어는 "나 행복"처럼 동사 없이도 자연스럽지만, 영어에서는 문법 오류가 됩니다.`;
+    }
+    if (isAux(w) && MODAL_TO_PHRASES.some(p => p.startsWith(w))) {
+      return `📌 조동사/준조동사 "${w}" 누락\n"${w}"가 빠져 있었어요. 이 단어는 뒤에 오는 동사의 의미(의무·필요·경험 등)를 더해주는 조동사 역할을 해서, 빠지면 문장의 의미와 형태가 달라져요.`;
+    }
+    if (looksLikeVerb(w)) {
+      if (prevWord === 'to' || MODAL_TO_PHRASES.some(p => p.endsWith('to')) ) {
+        return `📌 본동사 "${w}" 누락 (to부정사 구조)\n"to" 뒤에는 반드시 동사원형이 와서 "to ${w}"(부정사) 형태를 만들어야 하는데, 정작 동사 "${w}"가 빠지고 "to" 뒤에 명사(장소·대상 등)만 바로 나와 있었어요. "have to / need to / want to / going to"처럼 "동사 + to" 표현 뒤에는 명사가 아니라 반드시 "동사원형"이 와야 해서, 뜻을 완성하려면 "${w}"와 같은 동사를 넣어줘야 해요. 예: "I have to Seoul"(✗, 동사 없음) → "I have to go to Seoul"(✓, go라는 본동사가 있음).`;
+      }
+      return `📌 본동사 "${w}" 누락\n문장에 술어 역할을 할 동사 "${w}"가 빠져 있었어요. 영어 문장은 명사(구)만 나열해서는 완전한 문장이 될 수 없고, 반드시 주어의 동작이나 상태를 나타내는 동사가 있어야 해요.`;
+    }
+    return `📌 단어 "${w}" 추가\n"${w}"가 새로 들어가면서 문장의 의미가 더 정확하고 자연스러워졌어요.`;
+  }
+  // 여러 단어가 함께 삽입된 경우: 첫 단어가 동사이고 앞이 "to"이면 to부정사 누락으로 설명
+  const first = words[0];
+  if (looksLikeVerb(first) && (prevWord === 'to' || MODAL_TO_PHRASES.some(p => p.split(' ').includes(prevWord)))) {
+    return `📌 본동사 "${first}" 누락 (to부정사 구조)\n"to" 뒤에는 반드시 동사원형이 와서 "to ${first}"(부정사) 형태를 만들어야 하는데, 정작 동사 "${first}"가 빠지고 "to" 뒤에 명사(장소·대상 등)만 바로 나와 있었어요. "have to / need to / want to / going to"처럼 "동사 + to" 표현 뒤에는 명사가 아니라 반드시 "동사원형"이 와야 해서, 뜻을 완성하려면 "${phrase}"처럼 동사를 넣어줘야 해요. 예: "I have to Seoul"(✗, 동사 없음) → "I have to ${phrase} Seoul"(✓, 본동사가 있음).`;
+  }
+  return `📌 표현 "${phrase}" 추가\n이 부분이 문장에 통째로 추가되면서 의미가 더 분명하고 자연스러워졌어요. 한국어에서는 생략해도 자연스러운 부분이 영어에서는 명시적으로 들어가야 하는 경우가 많아요.`;
+}
+
+function describeDelete(words) {
+  const phrase = words.join(' ');
+  return `📌 불필요한 표현 "${phrase}" 삭제\n"${phrase}"는 이 문장에서는 없어도 되거나, 있으면 오히려 어색한 표현이라 빠졌어요. 한국어를 단어 그대로 영어로 옮기는 "직역" 과정에서 이런 군더더기 표현이 자주 생기는데, 영어식으로 더 간결하게 표현하는 연습이 필요해요.`;
+}
+
+function explainDifference(x, o) {
+  if (!x || !x.trim()) return '';
+  const xw = normWords(x);
+  const ow = normWords(o);
+  if (!xw.length) return '';
+
+  const notes = [];
+
+  // 0) 단답형/문장 조각인지 먼저 체크 (구조적 문제라서 가장 먼저 설명)
+  if (xw.length <= 3 && ow.length >= xw.length * 2) {
+    notes.push(`📌 문장 조각(단답형) 오류\n"${x}"처럼 단어 몇 개만으로 대답하면 구어체에서는 통해도 격식 있는 완전한 문장이 아니에요. 영어 문장의 기본 구조는 "주어(Subject) + 동사(Verb) + (목적어/보어)"이므로, "${o}"처럼 주어와 동사를 모두 갖춘 문장으로 말하는 연습이 필요해요.`);
+  }
+
+  const ops = diffWordOps(xw, ow);
+  ops.forEach(op => {
+    if (op.type === 'replace') notes.push(describeReplace(op.from, op.to));
+    else if (op.type === 'insert') {
+      const idx = ops.indexOf(op);
+      const prevSame = [...ops.slice(0, idx)].reverse().find(o2 => o2.type === 'same');
+      const nextSame = ops.slice(idx + 1).find(o2 => o2.type === 'same');
+      notes.push(describeInsert(op.words, prevSame ? prevSame.words[0] : '', nextSame ? nextSame.words[0] : ''));
+    }
+    else if (op.type === 'delete') notes.push(describeDelete(op.words));
+  });
+
+  if (notes.length === 0) {
+    notes.push('📌 문장 구조 분석\n단어 구성은 같지만 어순이나 표현 방식이 더 자연스럽게 다듬어졌어요. 위 취소선(✗) 문장과 비교하며 어순 차이를 확인해보세요.');
+  }
+
+  // 마지막에 전체 문장 구조를 한 번 더 짚어주는 총평(교수님 스타일 마무리)
+  const oHasBe = ow.some(isBe);
+  const structureNote = `\n📖 문장 구조 정리: "${o}" 는 ${oHasBe ? '[주어] + [be동사] + [보어/설명]' : '[주어] + [동사] + [목적어/부가어]'} 구조의 완전한 문장입니다.`;
+
+  return notes.join('\n\n') + structureNote;
+}
+
+/* ===================== 전체 요약 (복사용) ===================== */
+
+function buildSummaryText() {
+  if (!sentences.length && !words.length) return '아직 추가된 내용이 없어요.';
+  const lines = [];
+  if (sentences.length) {
+    lines.push('=== 문장 ===');
+    sentences.forEach((item, idx) => {
+      lines.push('');
+      lines.push(`[${idx + 1}]`);
+      if (item.x) lines.push(`교정 전: ${item.x}`);
+      lines.push(`교정 후: ${item.o}`);
+      if (item.x) lines.push(`문법 해석: ${explainDifference(item.x, item.o)}`);
+    });
+  }
+  if (words.length) {
+    lines.push('');
+    lines.push('=== 단어 ===');
+    words.forEach(w => {
+      lines.push(w);
+    });
+  }
+  return lines.join('\n');
+}
+
+function updateSummary() {
+  const summaryArea = document.getElementById('summaryArea');
+  if (summaryArea) summaryArea.value = buildSummaryText();
+}
+
+/* ===================== 비슷한 표현 4개 생성 (오프라인, 사전 기반 - AI/API 미사용) ===================== */
+// 서버나 API 없이 브라우저에서만 동작해야 해서, 자주 나오는 단어/구를 자연스러운 유사 표현으로
+// 바꿔치기하는 사전 기반 방식으로 만듭니다. AI가 새로 문장을 짓는 것보다 다양성은 제한적이지만
+// 비용이나 크레딧 없이 누구나 무제한으로 쓸 수 있어요.
+const PARAPHRASE_DICT = [
+  // 구(phrase) 단위 — 단어보다 먼저 매칭되도록 배열 앞쪽에 둡니다.
+  [/\ba lot of\b/gi, ['plenty of', 'lots of', 'a good amount of', 'quite a few']],
+  [/\bi think\b/gi, ['I believe', 'I feel like', 'In my opinion,', 'It seems to me']],
+  [/\bi want to\b/gi, ["I'd like to", "I'm planning to", 'I hope to', "I'm hoping to"]],
+  [/\bi like\b/gi, ['I enjoy', "I'm a fan of", 'I really like', "I'm into"]],
+  [/\bi love\b/gi, ['I really love', 'I adore', "I'm crazy about", 'I truly enjoy']],
+  [/\bi feel proud of myself\b/gi, ['I feel really proud', "I'm proud of myself", 'It makes me proud', 'I feel a sense of pride']],
+  [/\bmakes? me excited\b/gi, ['get me excited', 'make me feel thrilled', 'make me really happy', 'get me pumped']],
+  [/\ba perfect score\b/gi, ['a perfect mark', 'full marks', '100 percent', 'top marks']],
+  [/\bstayed at home\b/gi, ['stayed home', 'stayed in', 'spent the day at home', "didn't go out"]],
+  // 단어 단위
+  [/\bhappy\b/gi, ['glad', 'pleased', 'delighted', 'thrilled']],
+  [/\bsad\b/gi, ['upset', 'down', 'unhappy', 'blue']],
+  [/\bgood\b/gi, ['great', 'nice', 'solid', 'decent']],
+  [/\bbad\b/gi, ['not great', 'poor', 'rough', 'unpleasant']],
+  [/\bnice\b/gi, ['great', 'lovely', 'pleasant', 'wonderful']],
+  [/\bgreat\b/gi, ['awesome', 'fantastic', 'wonderful', 'excellent']],
+  [/\binteresting\b/gi, ['fascinating', 'intriguing', 'engaging', 'compelling']],
+  [/\bboring\b/gi, ['dull', 'tedious', 'not very interesting', 'a bit flat']],
+  [/\bdifficult\b/gi, ['hard', 'challenging', 'tough', 'tricky']],
+  [/\beasy\b/gi, ['simple', 'straightforward', 'not hard', 'a breeze']],
+  [/\bimportant\b/gi, ['essential', 'crucial', 'key', 'significant']],
+  [/\bexcited\b/gi, ['thrilled', 'pumped', 'stoked', 'really looking forward to it']],
+  [/\bproud\b/gi, ['pleased with myself', 'satisfied', 'delighted', 'accomplished']],
+  [/\btired\b/gi, ['exhausted', 'worn out', 'sleepy', 'beat']],
+  [/\bbusy\b/gi, ['swamped', 'tied up', 'occupied', 'slammed']],
+  [/\bcomfortable\b/gi, ['cozy', 'relaxed', 'at ease', 'comfy']],
+  [/\bbeautiful\b/gi, ['gorgeous', 'lovely', 'stunning', 'pretty']],
+  [/\bexpensive\b/gi, ['pricey', 'costly', 'a bit much', 'overpriced']],
+  [/\bcheap\b/gi, ['affordable', 'inexpensive', 'budget-friendly', 'a good deal']],
+  [/\bfast\b/gi, ['quick', 'speedy', 'rapid', 'swift']],
+  [/\bslow\b/gi, ['sluggish', 'unhurried', 'gradual', 'leisurely']],
+  [/\bdelicious\b/gi, ['tasty', 'yummy', 'amazing', 'mouthwatering']],
+  [/\bfun\b/gi, ['enjoyable', 'entertaining', 'a good time', 'a blast']],
+  [/\bscary\b/gi, ['frightening', 'creepy', 'terrifying', 'spooky']],
+  [/\bangry\b/gi, ['mad', 'annoyed', 'frustrated', 'upset']],
+  [/\bworried\b/gi, ['concerned', 'anxious', 'nervous', 'uneasy']],
+  [/\bnervous\b/gi, ['anxious', 'on edge', 'a little worried', 'jittery']],
+  [/\bconfident\b/gi, ['sure of myself', 'self-assured', 'certain', 'assured']],
+  [/\bconfused\b/gi, ['puzzled', 'lost', 'mixed up', 'unsure']],
+  [/\bfamily\b/gi, ['family members', 'loved ones', 'relatives', 'folks']],
+  [/\bfriends\b/gi, ['buddies', 'close friends', 'pals', 'people I know']],
+];
+
+function toTitleCaseFirst(str) {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// 문장 하나를 받아서 사전에 매칭되는 단어/구를 각기 다른 유사어로 바꾼 4개의 변형을 만듭니다.
+// 구(phrase) 매칭을 먼저 찾고, 이미 매칭된 구간과 겹치는 단어 매칭은 건너뛰어서(예: "I feel proud
+// of myself"를 통째로 바꾼 뒤 그 안의 "proud"를 또 따로 바꿔서 어색해지는 것을 방지) 문법이 깨지지
+// 않도록 합니다. 매칭되는 게 거의 없으면(사전에 없는 단어로만 이루어진 문장) 자연스러운 구어체
+// 시작어구를 붙여 최소한의 4개를 채워줍니다.
+function generateSimilarExpressions(sentence) {
+  const base = (sentence || '').trim();
+  if (!base) return [];
+
+  // 1) 사전 항목을 앞쪽(구 단위)부터 순서대로 검사하면서, 이미 찾은 매칭 구간과 겹치지 않는
+  //    매칭만 채택합니다.
+  const matches = [];
+  PARAPHRASE_DICT.forEach(([re, alts]) => {
+    const flags = re.flags.includes('g') ? re.flags : re.flags + 'g';
+    const globalRe = new RegExp(re.source, flags);
+    let m;
+    while ((m = globalRe.exec(base)) !== null) {
+      const start = m.index;
+      const end = start + m[0].length;
+      const overlaps = matches.some(mm => start < mm.end && end > mm.start);
+      if (!overlaps) matches.push({ start, end, text: m[0], alts });
+      if (globalRe.lastIndex === m.index) globalRe.lastIndex++; // 빈 매칭 무한루프 방지
+    }
+  });
+  matches.sort((a, b) => a.start - b.start);
+
+  const rawVariants = [];
+  if (matches.length) {
+    for (let i = 0; i < 4; i++) {
+      let out = '';
+      let cursor = 0;
+      matches.forEach(mm => {
+        out += base.slice(cursor, mm.start);
+        const alt = mm.alts[i % mm.alts.length];
+        const isCapitalized = mm.text.charAt(0) === mm.text.charAt(0).toUpperCase() && mm.text.charAt(0) !== mm.text.charAt(0).toLowerCase();
+        out += isCapitalized ? toTitleCaseFirst(alt) : alt;
+        cursor = mm.end;
+      });
+      out += base.slice(cursor);
+      rawVariants.push({ text: out, changed: true });
+    }
+  }
+
+  const starters = ['Actually, ', 'Honestly, ', 'You know, ', 'To be honest, '];
+  const lowerBase = base.charAt(0).toLowerCase() + base.slice(1);
+  const seen = new Set();
+  const result = [];
+  for (let i = 0; i < 4; i++) {
+    const v = rawVariants[i];
+    let text = (v && !seen.has(v.text)) ? v.text : (starters[i] + lowerBase);
+    if (!seen.has(text)) { seen.add(text); result.push(text); }
+  }
+  let si = 0;
+  while (result.length < 4 && si < starters.length) {
+    const candidate = starters[si] + lowerBase;
+    if (!seen.has(candidate)) { seen.add(candidate); result.push(candidate); }
+    si++;
+  }
+  return result.slice(0, 4);
+}
+
+/* ===================== ① 문장 교정 쉐도잉 ===================== */
+
+const sentenceList = document.getElementById('sentenceList');
+const sentenceEmpty = document.getElementById('sentenceEmpty');
+const xInput = document.getElementById('xInput');
+const oInput = document.getElementById('oInput');
+const addSentenceBtn = document.getElementById('addSentenceBtn');
+const bulkPasteArea = document.getElementById('bulkPasteArea');
+const bulkAddBtn = document.getElementById('bulkAddBtn');
+const bulkStatus = document.getElementById('bulkStatus');
+
+let sentences = []; // { x, o }
+let isStarterSentences = true; // true until the user adds their own content — the 3 example cards get cleared then
+
+function clearStarterSentencesIfNeeded() {
+  if (isStarterSentences) {
+    sentences = [];
+    isStarterSentences = false;
+  }
+}
+
+function renderSentences() {
+  sentenceList.innerHTML = '';
+  sentenceEmpty.style.display = sentences.length ? 'none' : 'block';
+
+  sentences.forEach((item, idx) => {
+    const explanation = item.x ? explainDifference(item.x, item.o) : '';
+
+    const el = document.createElement('div');
+    el.className = 'item';
+    el.innerHTML = `
+      <div class="item-top">
+        <div style="flex:1;">
+          ${item.x && !item.hideX ? `<div class="x-line">✗ ${escapeHTML(item.x)}</div>` : ''}
+          <div class="o-line">✓ ${escapeHTML(item.o)}</div>
+          <div class="kr-meaning">🇰🇷 뜻: <span class="kr-text">번역 중...</span></div>
+          ${explanation ? `<div class="explain-block">🔎 <b>왜 틀렸을까요?</b> ${escapeHTML(explanation)}</div>` : ''}
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="btn-ghost btn-small edit-btn">✏️ 수정</button>
+          <button class="btn-danger btn-small del-btn">삭제</button>
+        </div>
+      </div>
+    `;
+    loadTranslationInto(el.querySelector('.kr-meaning .kr-text'), item.o);
+
+    el.querySelector('.del-btn').addEventListener('click', () => {
+      sentences.splice(idx, 1);
+      renderSentences();
+    });
+
+    el.querySelector('.edit-btn').addEventListener('click', () => {
+      // 수정 = 폼에 기존 내용을 채우고 목록에서는 빼둔 뒤, 사용자가 고쳐서 다시 "문장 추가"를 누르면 반영됩니다.
+      xInput.value = item.x || '';
+      oInput.value = item.o || '';
+      sentences.splice(idx, 1);
+      renderSentences();
+      const detailsEl = xInput.closest('details');
+      if (detailsEl) detailsEl.open = true;
+      oInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      oInput.focus();
+    });
+
+    el.appendChild(buildShadowingControls(item.o));
+
+    const similar = generateSimilarExpressions(item.o);
+    if (similar.length) {
+      const variantWrap = document.createElement('details');
+      variantWrap.className = 'variant-details';
+      const summary = document.createElement('summary');
+      summary.textContent = `🗣️ 비슷한 표현 ${similar.length}개로 더 연습하기`;
+      variantWrap.appendChild(summary);
+      similar.forEach(vText => {
+        const vEl = document.createElement('div');
+        vEl.className = 'item variant-item';
+        const vLine = document.createElement('div');
+        vLine.className = 'o-line';
+        vLine.textContent = `➜ ${vText}`;
+        vEl.appendChild(vLine);
+        vEl.appendChild(buildShadowingControls(vText));
+        variantWrap.appendChild(vEl);
+      });
+      el.appendChild(variantWrap);
+    }
+
+    sentenceList.appendChild(el);
+  });
+
+  updateSummary();
+}
+
+addSentenceBtn.addEventListener('click', () => {
+  const o = oInput.value.trim();
+  if (!o) { oInput.focus(); return; }
+  const x = xInput.value.trim();
+  clearStarterSentencesIfNeeded();
+  sentences.push({ x, o });
+  xInput.value = '';
+  oInput.value = '';
+  xInput.focus();
+  renderSentences();
+});
+[xInput, oInput].forEach(el => el.addEventListener('keydown', e => {
+  if (e.key === 'Enter') addSentenceBtn.click();
+}));
+
+bulkAddBtn.addEventListener('click', () => {
+  const text = bulkPasteArea.value;
+  if (!text.trim()) { bulkStatus.textContent = '붙여넣을 내용이 없어요.'; return; }
+  const pairMode = document.getElementById('pairModeCheckbox').checked;
+  const { newSentences, newWords } = parseFeedbackBlock(text, pairMode);
+  if (!newSentences.length && !newWords.length) {
+    bulkStatus.textContent = '⚠️ x:/o: 형식을 찾지 못했어요. "x: 문장" / "o: 문장" 형식으로 붙여넣어주세요.';
+    return;
+  }
+  isStarterSentences = false;
+  // 새 교정 문장을 붙여넣으면 이전에 있던 문장 카드는 모두 지우고, 이번에 붙여넣은 문장들로만 새로 채웁니다.
+  if (newSentences.length) {
+    sentences = newSentences;
+  }
+  words = words.concat(newWords);
+  renderSentences();
+  renderWords();
+  bulkPasteArea.value = '';
+  bulkStatus.textContent = `✅ 문장 ${newSentences.length}개${newWords.length ? `, 단어 ${newWords.length}개` : ''}로 쉐도잉 목록을 새로 만들었어요.`;
+
+  // 새로 만들어진 목록의 맨 위(첫 카드)로 스크롤해서 바로 보이게 합니다.
+  if (newSentences.length && sentenceList.firstElementChild) {
+    sentenceList.firstElementChild.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+});
+
+/* ===================== ② 단어 발음 연습장 ===================== */
+
+const wordList = document.getElementById('wordList');
+const wordEmpty = document.getElementById('wordEmpty');
+const wordInput = document.getElementById('wordInput');
+const addWordBtn = document.getElementById('addWordBtn');
+const bulkWordArea = document.getElementById('bulkWordArea');
+const bulkWordAddBtn = document.getElementById('bulkWordAddBtn');
+const bulkWordStatus = document.getElementById('bulkWordStatus');
+
+// 줄바꿈, 쉼표, 띄어쓰기 어떤 걸로 구분해서 붙여넣어도 단어 하나하나로 쪼개줍니다. ("w:" 접두어가 붙어있으면 떼어냅니다.)
+function parseWordsBlock(text) {
+  return text
+    .split(/[,\n]+/)
+    .flatMap(chunk => chunk.trim().split(/\s+/))
+    .map(w => w.replace(W_PREFIX_RE, '').trim())
+    .filter(Boolean);
+}
+
+let words = []; // strings
+
+function renderWords() {
+  wordList.innerHTML = '';
+  wordEmpty.style.display = words.length ? 'none' : 'block';
+
+  words.forEach((w, idx) => {
+    const el = document.createElement('div');
+    el.className = 'item';
+    el.innerHTML = `
+      <div class="item-top">
+        <div style="flex:1;">
+          <div class="word-line">${escapeHTML(w)}</div>
+          <div class="kr-meaning">🇰🇷 뜻: <span class="kr-text">번역 중...</span></div>
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="btn-ghost btn-small edit-btn">✏️ 수정</button>
+          <button class="btn-danger btn-small del-btn">삭제</button>
+        </div>
+      </div>
+    `;
+    loadTranslationInto(el.querySelector('.kr-meaning .kr-text'), w);
+
+    el.querySelector('.del-btn').addEventListener('click', () => {
+      words.splice(idx, 1);
+      renderWords();
+    });
+
+    el.querySelector('.edit-btn').addEventListener('click', () => {
+      wordInput.value = w;
+      words.splice(idx, 1);
+      renderWords();
+      wordInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      wordInput.focus();
+    });
+
+    el.appendChild(buildShadowingControls(w));
+    wordList.appendChild(el);
+  });
+
+  updateSummary();
+}
+
+addWordBtn.addEventListener('click', () => {
+  const raw = wordInput.value.trim();
+  if (!raw) { wordInput.focus(); return; }
+  // 이 입력칸에 단어를 여러 개 붙여넣거나 띄어써도(쉼표/띄어쓰기/줄바꿈), 단어마다 각각 카드로 나눠서 추가합니다.
+  const newWords = parseWordsBlock(raw);
+  words = words.concat(newWords);
+  wordInput.value = '';
+  wordInput.focus();
+  renderWords();
+});
+wordInput.addEventListener('keydown', e => { if (e.key === 'Enter') addWordBtn.click(); });
+
+bulkWordAddBtn.addEventListener('click', () => {
+  const text = bulkWordArea.value;
+  if (!text.trim()) { bulkWordStatus.textContent = '붙여넣을 내용이 없어요.'; return; }
+  const newWords = parseWordsBlock(text);
+  if (!newWords.length) { bulkWordStatus.textContent = '⚠️ 단어를 찾지 못했어요.'; return; }
+  // 새 단어를 붙여넣으면 이전에 있던 단어 카드는 모두 지우고, 이번에 붙여넣은 단어들로만 새로 채웁니다.
+  words = newWords;
+  renderWords();
+  bulkWordArea.value = '';
+  bulkWordStatus.textContent = `✅ 단어 ${newWords.length}개로 목록을 새로 만들었어요.`;
+  if (wordList.firstElementChild) wordList.firstElementChild.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+/* ===================== 내보내기 / 가져오기 ===================== */
+
+const exportBtn = document.getElementById('exportBtn');
+const importBtn = document.getElementById('importBtn');
+const exportArea = document.getElementById('exportArea');
+
+exportBtn.addEventListener('click', () => {
+  const lines = [];
+  lines.push('# 문장');
+  sentences.forEach(s => {
+    if (s.x) lines.push(`x: ${s.x}`);
+    lines.push(`o: ${s.o}`);
+  });
+  lines.push('');
+  lines.push('# 단어');
+  words.forEach(w => lines.push(`w: ${w}`));
+  exportArea.value = lines.join('\n');
+});
+
+importBtn.addEventListener('click', () => {
+  const text = exportArea.value;
+  if (!text.trim()) return;
+  const { newSentences, newWords } = parseFeedbackBlock(text);
+  if (newSentences.length) clearStarterSentencesIfNeeded();
+  if (newSentences.length) sentences = sentences.concat(newSentences);
+  if (newWords.length) words = words.concat(newWords);
+  renderSentences();
+  renderWords();
+  exportArea.value = '';
+});
+
+/* ===================== 시작 예시 데이터 ===================== */
+// 방금 대화에서 알려주신 피드백을 미리 넣어뒀어요. 필요 없으면 각 항목의 "삭제"로 지우면 됩니다.
+sentences = [
+  { x: 'Yes.', o: 'I stayed at home today.' },
+  { x: 'My family, my friends, delicious food, and playing game.', o: 'My family, my friends, delicious food, and playing games make me excited.' },
+  { x: 'My score test.', o: 'I feel proud of myself when I get a perfect score.' },
+];
+
+renderSentences();
+renderWords();
+
+/* ===================== 복사 버튼 ===================== */
+
+const copySummaryBtn = document.getElementById('copySummaryBtn');
+const copyStatus = document.getElementById('copyStatus');
+const summaryAreaEl = document.getElementById('summaryArea');
+
+copySummaryBtn.addEventListener('click', async () => {
+  const text = summaryAreaEl.value;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      summaryAreaEl.select();
+      document.execCommand('copy');
+    }
+    copyStatus.textContent = '✅ 복사했어요! 원하는 곳에 붙여넣기(Ctrl+V / Cmd+V) 하세요.';
+  } catch (err) {
+    summaryAreaEl.select();
+    copyStatus.textContent = '⚠️ 자동 복사에 실패했어요. 위 텍스트 상자가 선택되어 있으니 Ctrl+C / Cmd+C로 직접 복사해주세요.';
+  }
+});
+</script>
+</body>
+</html>
