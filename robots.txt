@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://berkeleyenglish.co.kr/sitemap.xml
+Sitemap: https://youngcle.kr/sitemap.xml
