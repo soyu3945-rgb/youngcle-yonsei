@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="원어민이 교정해준 문장/단어 발음 피드백을 직접 입력하고, 듣기+따라 말하기(쉐도잉)로 연습하는 도구">
 <meta name="color-scheme" content="light">
-<link rel="icon" type="image/png" href="images/youngkle-logo.png">
-<link rel="canonical" href="https://youngcle.kr/shadowing.html">
+<link rel="icon" type="image/png" href="images/영클원어민영어회화-badge.png">
+<link rel="canonical" href="https://youngcle.co.kr/shadowing.html">
 <title>쉐도잉 연습장 | 영클원어민영어회화</title>
 <style>
   :root{
@@ -109,6 +109,7 @@
   .variant-details summary{cursor:pointer; font-size:0.83rem; font-weight:700; color:var(--accent2);}
   .variant-item{background:var(--bg); border:1px dashed var(--border); border-radius:10px; margin-top:8px; padding:10px 12px;}
   .variant-item .o-line{font-size:0.92rem; margin-bottom:4px;}
+  .variant-loading{font-size:0.78rem; color:var(--muted); margin-top:6px;}
 </style>
 </head>
 <body>
@@ -131,7 +132,7 @@
   <!-- ============ 문장 교정 쉐도잉 ============ -->
   <div class="card">
     <h2>① 문장 교정 쉐도잉</h2>
-    <div class="card-desc">원어민 피드백을 한 번에 여러 개 붙여넣거나, 한 쌍씩 추가할 수 있어요. ⚠️ 아래 "한 번에 추가"는 기존 문장 목록을 지우고 새로 붙여넣은 내용으로만 교체합니다.<br>✨ 교정된 문장마다 비슷한 표현 4개를 자동으로 만들어드려요(사전 기반 · AI 미사용 · 100% 무료). 각 표현도 그대로 듣기/따라 말하기 연습이 가능합니다.</div>
+    <div class="card-desc">원어민 피드백을 한 번에 여러 개 붙여넣거나, 한 쌍씩 추가할 수 있어요. ⚠️ 아래 "한 번에 추가"는 기존 문장 목록을 지우고 새로 붙여넣은 내용으로만 교체합니다.<br>✨ 교정된 문장마다 비슷한 표현 4개를 자동으로 만들어드려요(AI 사용 · 로그인 불필요 · 100% 무료, AI 연결이 안 되면 사전 기반으로 자동 대체). 각 표현도 그대로 듣기/따라 말하기 연습이 가능합니다.</div>
 
     <label for="bulkPasteArea">📋 여러 개 한 번에 붙여넣기 (한 줄에 문장 하나씩, "o:" 접두어는 없어도 됨)</label>
     <textarea id="bulkPasteArea" placeholder="I stayed at home today.
@@ -229,7 +230,7 @@ schedule"></textarea>
   </div>
 
   <footer>
-    ⓘ 한글 번역은 <a href="https://mymemory.translated.net" style="color:var(--accent);" target="_blank" rel="noopener">MyMemory</a> 무료 번역 API를 사용합니다 (네트워크 필요, 실패 시 번역이 표시되지 않을 수 있어요).<br>
+    ⓘ 한글 번역은 구글 번역을 우선 사용하고(실패 시 MyMemory로 대체), 무료 API라 네트워크가 필요하며 드물게 번역이 표시되지 않을 수 있어요.<br>
     ⓘ 듣기(TTS)와 발음 인식(STT)은 브라우저의 Web Speech API를 사용하며, Chrome 데스크톱에서 가장 안정적으로 동작합니다.<br>
     ⓘ 문법 설명은 외부 API 없이 이 페이지 안에서 규칙 기반으로 자동 생성되는 근사치입니다.
   </footer>
@@ -243,7 +244,29 @@ function escapeHTML(s){ return s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;'
 const translationCache = new Map();
 // MyMemory는 키 없이 쓰는 무료 API라 가끔 응답이 늦거나(타임아웃), 순간적으로 요청이 몰려 실패할 때가 있어요.
 // 그래서 한 번 실패해도 바로 포기하지 않고 몇 번 더 재시도합니다.
-async function translateOnce(text, target, source, timeoutMs) {
+// 구글 번역의 비공식 무료 엔드포인트(별도 API 키 필요 없음, client=gtx). 문장 단위 의역이
+// MyMemory보다 훨씬 자연스러워서 1순위로 사용하고, 혹시 실패하면 아래 MyMemory로 대체합니다.
+async function translateOnceGoogle(text, target, source, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${source}&tl=${target}&dt=t&q=${encodeURIComponent(text)}`;
+    const resp = await fetch(url, { signal: controller.signal });
+    if (!resp.ok) throw new Error('google translate HTTP ' + resp.status);
+    const data = await resp.json();
+    // 응답 형태: [[["번역된 조각","원문 조각",...], ...], ...] — 조각들을 순서대로 이어붙입니다.
+    const translated = Array.isArray(data) && Array.isArray(data[0])
+      ? data[0].map(seg => (Array.isArray(seg) ? seg[0] : '')).join('')
+      : '';
+    if (!translated) throw new Error('empty google translation');
+    return translated;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// 예전에 쓰던 MyMemory 무료 번역 API. 구글 번역이 막히거나 실패했을 때만 대체용으로 사용합니다.
+async function translateOnceMyMemory(text, target, source, timeoutMs) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -258,6 +281,15 @@ async function translateOnce(text, target, source, timeoutMs) {
     return translated;
   } finally {
     clearTimeout(timer);
+  }
+}
+
+async function translateOnce(text, target, source, timeoutMs) {
+  try {
+    return await translateOnceGoogle(text, target, source, timeoutMs);
+  } catch (err) {
+    console.warn('구글 번역 실패, MyMemory로 대체합니다:', err);
+    return await translateOnceMyMemory(text, target, source, timeoutMs);
   }
 }
 
@@ -348,11 +380,11 @@ function buildShadowingControls(targetText) {
     <div class="controls">
       <select class="rate-select">
         <option value="1">보통 속도</option>
-        <option value="0.8" selected>약간 천천히</option>
-        <option value="0.6">천천히</option>
+        <option value="0.8">약간 천천히</option>
+        <option value="0.6" selected>천천히</option>
       </select>
       <span class="repeat-field" style="display:flex; align-items:center; gap:4px;">
-        <input type="number" class="repeat-input" min="1" max="30" value="1" style="width:52px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:6px 8px; font-size:0.82rem; font-family:inherit;">
+        <input type="number" class="repeat-input" min="1" max="30" value="10" style="width:52px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:6px 8px; font-size:0.82rem; font-family:inherit;">
         <span style="font-size:0.78rem; color:var(--muted);">회 반복</span>
       </span>
       <button class="btn-primary btn-small mic-btn" ${hasSTT ? '' : 'disabled title="이 브라우저는 음성 인식을 지원하지 않습니다(Chrome 권장)"'}>🎙️ 따라 말하기</button>
@@ -820,6 +852,8 @@ function updateSummary() {
 // 비용이나 크레딧 없이 누구나 무제한으로 쓸 수 있어요.
 const PARAPHRASE_DICT = [
   // 구(phrase) 단위 — 단어보다 먼저 매칭되도록 배열 앞쪽에 둡니다.
+  // (더 구체적인 구가 더 일반적인 구보다 항상 먼저 오도록 순서를 유지하세요. 예: "where can i"가
+  //  "can i"보다 먼저 있어야 "where can i buy..." 전체가 통째로 바뀝니다.)
   [/\ba lot of\b/gi, ['plenty of', 'lots of', 'a good amount of', 'quite a few']],
   [/\bi think\b/gi, ['I believe', 'I feel like', 'In my opinion,', 'It seems to me']],
   [/\bi want to\b/gi, ["I'd like to", "I'm planning to", 'I hope to', "I'm hoping to"]],
@@ -829,6 +863,53 @@ const PARAPHRASE_DICT = [
   [/\bmakes? me excited\b/gi, ['get me excited', 'make me feel thrilled', 'make me really happy', 'get me pumped']],
   [/\ba perfect score\b/gi, ['a perfect mark', 'full marks', '100 percent', 'top marks']],
   [/\bstayed at home\b/gi, ['stayed home', 'stayed in', 'spent the day at home', "didn't go out"]],
+  // 질문 패턴 — 문장 앞부분을 통째로 바꿔서 진짜 다른 표현처럼 들리게 합니다.
+  [/\bwhere can i\b/gi, ["where's the best place to", 'do you know where I can', 'where would I go to', 'is there a place where I can']],
+  [/\bwhere do i\b/gi, ["where's the best place to", 'do you know where I should', 'where should I', 'is there a place where I should']],
+  [/\bhow can i\b/gi, ["what's the best way to", 'do you know how I can', 'how would I', 'is there a way I can']],
+  [/\bhow do i\b/gi, ["what's the best way to", 'do you know how I should', 'how should I', 'is there a way I should']],
+  [/\bwhat should i\b/gi, ['what do you think I should', 'any idea what I should', "what's the best thing to", 'what would you suggest I']],
+  [/\bwhen can i\b/gi, ['what time can I', 'do you know when I can', 'when would be a good time to', 'is there a time I can']],
+  [/\bdo you know\b/gi, ['could you tell me', 'would you happen to know', 'any idea', 'can you tell me']],
+  [/\bcan i\b/gi, ['could I', 'may I', 'is it possible for me to', 'would it be okay if I']],
+  [/\bcan you\b/gi, ['could you', 'would you', 'is it possible for you to', 'would you mind if you']],
+  [/\bis there\b/gi, ['do you know if there is', 'i wonder if there is', 'could there be', 'by any chance, is there']],
+  [/\bhow much\b/gi, ["what's the price for", 'what does it cost for', 'roughly how much', 'about how much']],
+  [/\bwhat time\b/gi, ['at what time', 'around what time', 'roughly when', 'do you know what time']],
+  // 부정 표현 (3인칭 단수만 — 주어에 따라 be동사가 달라지는 문제를 피하려고 "doesn't"만 다룹니다)
+  [/\bdoesn't like\b/gi, ["isn't a fan of", "doesn't really like", "isn't into", "isn't really keen on"]],
+  [/\bdoesn't want\b/gi, ["isn't looking to", "doesn't really want", "isn't interested in", "isn't up for"]],
+  [/\bdoesn't have\b/gi, ["is without", "doesn't happen to have", "is missing", "doesn't currently have"]],
+  // 자주 나오는 과거시제 동사 — 원어민 피드백 문장에 가장 흔히 등장하는 동사들이라 우선순위를 높였습니다.
+  [/\bvisited\b/gi, ['went to', 'traveled to', 'made a trip to', 'stopped by']],
+  [/\bwent to\b/gi, ['visited', 'traveled to', 'headed to', 'made a trip to']],
+  [/\bwatched\b/gi, ['saw', 'checked out', 'caught', 'sat through']],
+  [/\bate\b/gi, ['had', 'grabbed', 'enjoyed', 'tried']],
+  [/\bbought\b/gi, ['picked up', 'got', 'purchased', 'grabbed']],
+  [/\bmet\b/gi, ['ran into', 'got together with', 'caught up with', 'hung out with']],
+  [/\bsaw\b/gi, ['spotted', 'noticed', 'caught sight of', 'ran into']],
+  [/\bplayed\b/gi, ['took part in', 'joined in on', 'had a go at', 'enjoyed playing']],
+  [/\bstudied\b/gi, ['looked into', 'went over', 'reviewed', 'worked through']],
+  [/\bfinished\b/gi, ['wrapped up', 'completed', 'got done with', 'wound up']],
+  [/\bstarted\b/gi, ['began', 'kicked off', 'got going on', 'set out on']],
+  [/\bdecided\b/gi, ['made up my mind', 'chose', 'settled on', 'went with']],
+  [/\bforgot\b/gi, ['couldn’t remember', 'slipped my mind (', 'lost track of', 'blanked on']],
+  [/\brealized\b/gi, ['noticed', 'figured out', 'came to see', 'discovered']],
+  [/\btried\b/gi, ['gave it a shot', 'attempted', 'gave it a try', 'had a go']],
+  [/\bwanted\b/gi, ['felt like', 'was hoping', 'was in the mood for', 'really wanted']],
+  [/\bneeded\b/gi, ['had to have', 'required', 'was in need of', 'ended up needing']],
+  [/\bhelped\b/gi, ['gave a hand with', 'assisted with', 'lent a hand with', 'pitched in on']],
+  [/\bfound\b/gi, ['came across', 'discovered', 'spotted', 'ran across']],
+  [/\bwrote\b/gi, ['put together', 'drafted', 'jotted down', 'typed up']],
+  [/\bread\b/gi, ['went through', 'looked over', 'got through', 'checked out']],
+  [/\bcalled\b/gi, ['phoned', 'gave a call to', 'rang up', 'reached out to']],
+  [/\basked\b/gi, ['checked with', 'wondered out loud to', 'reached out to', 'put the question to']],
+  [/\bcooked\b/gi, ['made', 'whipped up', 'prepared', 'threw together']],
+  [/\bspent\b/gi, ['put in', 'used up', 'set aside', 'devoted']],
+  [/\bworked on\b/gi, ['put time into', 'focused on', 'spent time on', 'worked away at']],
+  [/\btraveled\b/gi, ['went', 'took a trip', 'traveled around', 'made a trip']],
+  [/\barrived\b/gi, ['got in', 'showed up', 'landed', 'made it there']],
+  [/\bstayed\b/gi, ['remained', 'hung around', 'stuck around', 'kept staying']],
   // 단어 단위
   [/\bhappy\b/gi, ['glad', 'pleased', 'delighted', 'thrilled']],
   [/\bsad\b/gi, ['upset', 'down', 'unhappy', 'blue']],
@@ -929,6 +1010,110 @@ function generateSimilarExpressions(sentence) {
   return result.slice(0, 4);
 }
 
+/* ===================== 비슷한 표현 4개 — 무료 AI(Netlify Function 경유) 우선, 실패 시 사전 기반으로 자동 대체 =====================
+   ⚠️ 처음엔 Puter.js를 붙여봤지만, 방문자마다 Puter 계정 로그인/가입 팝업이 뜨는 방식이라 공개 사이트엔
+   맞지 않아 제거했습니다. 대신 이 사이트가 이미 배포돼 있는 Netlify의 서버리스 함수
+   (/api/similar-expressions, netlify/functions/similar-expressions.mjs)를 통해 AI를 호출합니다.
+   - API 키는 Netlify 환경변수(GROQ_API_KEY)에만 저장되고 브라우저에는 절대 노출되지 않습니다.
+   - 방문자는 로그인/가입이 전혀 필요 없습니다.
+   - 함수 호출이 실패/타임아웃되거나 아직 API 키가 설정되지 않았으면 예외 없이 실패로 처리되고
+     위에서 만든 generateSimilarExpressions()(사전 기반, 100% 오프라인)로 자동 대체됩니다.
+   - 같은 문장을 반복 요청하지 않도록 localStorage에 결과를 캐싱합니다. */
+const AI_CACHE_KEY = 'bek_ai_paraphrase_cache_v2';
+const AI_ENDPOINT = '/api/similar-expressions';
+const AI_TIMEOUT_MS = 12000;
+
+function loadAICache() {
+  try {
+    const raw = localStorage.getItem(AI_CACHE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+function saveAICacheEntry(sentence, variants) {
+  try {
+    const cache = loadAICache();
+    cache[sentence] = variants;
+    const keys = Object.keys(cache);
+    if (keys.length > 300) delete cache[keys[0]]; // 캐시가 너무 커지지 않도록 오래된 항목부터 정리
+    localStorage.setItem(AI_CACHE_KEY, JSON.stringify(cache));
+  } catch (e) { /* localStorage 사용 불가 환경이면 그냥 캐싱을 건너뜁니다 */ }
+}
+function getCachedAIVariants(sentence) {
+  const v = loadAICache()[sentence];
+  return (Array.isArray(v) && v.length === 4) ? v : null;
+}
+
+async function fetchAIParaphrases(sentence) {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+    const res = await fetch(AI_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sentence }),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) return null; // 함수가 아직 배포 전이거나 API 키 미설정, 일시 오류 등 → 사전 기반으로 대체
+    const data = await res.json();
+    if (Array.isArray(data.variants) && data.variants.length === 4) return data.variants;
+  } catch (e) {
+    console.warn('[shadowing] AI 비슷한 표현 생성 실패 — 사전 기반으로 대체합니다.', e);
+  }
+  return null;
+}
+
+// 카드 하나에 들어갈 "비슷한 표현 4개" 블록을 만듭니다.
+// 1) 캐시된 AI 결과가 있으면 바로 그걸 보여줍니다.
+// 2) 없으면 사전 기반 결과를 즉시 보여준 뒤, 뒤에서 AI 호출을 시도해서 성공하면 같은 자리에 갈아끼웁니다.
+function buildVariantBlock(sentenceText) {
+  const dictVariants = generateSimilarExpressions(sentenceText);
+  const cached = getCachedAIVariants(sentenceText);
+  const initialVariants = cached || dictVariants;
+  const initialIsAI = !!cached;
+  if (!initialVariants.length) return null;
+
+  const variantWrap = document.createElement('details');
+  variantWrap.className = 'variant-details';
+  variantWrap.open = false;
+
+  const summary = document.createElement('summary');
+  variantWrap.appendChild(summary);
+
+  const body = document.createElement('div');
+  variantWrap.appendChild(body);
+
+  function paint(variants, isAI) {
+    summary.textContent = `🗣️ 비슷한 표현 ${variants.length}개로 더 연습하기${isAI ? ' (AI)' : ''}`;
+    body.innerHTML = '';
+    variants.forEach(vText => {
+      const vEl = document.createElement('div');
+      vEl.className = 'item variant-item';
+      const vLine = document.createElement('div');
+      vLine.className = 'o-line';
+      vLine.textContent = `➜ ${vText}`;
+      vEl.appendChild(vLine);
+      vEl.appendChild(buildShadowingControls(vText));
+      body.appendChild(vEl);
+    });
+  }
+
+  paint(initialVariants, initialIsAI);
+
+  if (!cached) {
+    fetchAIParaphrases(sentenceText).then(aiVariants => {
+      if (!aiVariants) return; // 실패 → 이미 화면에 사전 기반 표현이 떠 있으니 그대로 둡니다.
+      saveAICacheEntry(sentenceText, aiVariants);
+      if (!variantWrap.isConnected) return; // 그 사이 카드가 삭제/재렌더링된 경우 건너뜁니다.
+      paint(aiVariants, true);
+    });
+  }
+
+  return variantWrap;
+}
+
 /* ===================== ① 문장 교정 쉐도잉 ===================== */
 
 const sentenceList = document.getElementById('sentenceList');
@@ -994,25 +1179,8 @@ function renderSentences() {
 
     el.appendChild(buildShadowingControls(item.o));
 
-    const similar = generateSimilarExpressions(item.o);
-    if (similar.length) {
-      const variantWrap = document.createElement('details');
-      variantWrap.className = 'variant-details';
-      const summary = document.createElement('summary');
-      summary.textContent = `🗣️ 비슷한 표현 ${similar.length}개로 더 연습하기`;
-      variantWrap.appendChild(summary);
-      similar.forEach(vText => {
-        const vEl = document.createElement('div');
-        vEl.className = 'item variant-item';
-        const vLine = document.createElement('div');
-        vLine.className = 'o-line';
-        vLine.textContent = `➜ ${vText}`;
-        vEl.appendChild(vLine);
-        vEl.appendChild(buildShadowingControls(vText));
-        variantWrap.appendChild(vEl);
-      });
-      el.appendChild(variantWrap);
-    }
+    const variantBlock = buildVariantBlock(item.o);
+    if (variantBlock) el.appendChild(variantBlock);
 
     sentenceList.appendChild(el);
   });
