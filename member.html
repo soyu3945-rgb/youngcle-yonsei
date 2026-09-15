@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="원어민 선생님이 등록해준 문장/단어로 듣기+따라 말하기(쉐도잉) 연습을 하는 회원 전용 페이지">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light">
+<link rel="icon" type="image/png" href="images/영클원어민영어회화-badge.png">
+<title>내 쉐도잉 연습 | 영클원어민영어회화</title>
+<style>
+  :root{
+    --bg:#FAF6EC; --panel:#FFFFFF; --panel2:#FFFFFF; --border:#EAE1C8;
+    --input-bg:#FBF9F2;
+    --text:#1B2A4E; --body-text:#3C4257; --muted:#7C7566;
+    --accent:#C9A227; --accent-light:#E8CE73; --accent2:#1B2A4E;
+    --good:#1E8E5A; --bad:#C4453A; --warn:#B9790A;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Pretendard,Roboto,sans-serif;
+    background:var(--bg); color:var(--body-text); min-height:100vh; padding:0 0 80px;
+  }
+  .wrap{max-width:880px; margin:0 auto; padding:0 16px;}
+  header{background:var(--panel); border-bottom:1px solid var(--border); padding:20px 16px; margin-bottom:28px;}
+  header .wrap{padding:0 16px;}
+  h1{font-size:1.4rem; margin:0 0 6px; font-weight:800; letter-spacing:-0.02em; color:var(--text);}
+  .sub{color:var(--muted); font-size:0.9rem; line-height:1.55;}
+  .home-link{display:inline-flex; align-items:center; gap:6px; margin-bottom:10px; font-size:1rem; font-weight:800; color:var(--accent2); text-decoration:none;}
+  .home-link:hover{color:var(--accent);}
+  .home-link .home-icon{font-size:1.15rem; line-height:1;}
+  .card{background:var(--panel); border:1px solid var(--border); border-top:3px solid var(--accent); border-radius:var(--radius); padding:22px; margin-bottom:20px; box-shadow:0 8px 20px rgba(27,42,78,0.06);}
+  .card h2{font-size:1.02rem; margin:0 0 4px; display:flex; align-items:center; gap:8px; color:var(--text); font-weight:800;}
+  .card .card-desc{color:var(--muted); font-size:0.85rem; margin-bottom:16px;}
+  label{display:block; font-size:0.8rem; color:var(--muted); margin-bottom:6px; font-weight:700;}
+  input[type=text], input[type=password], textarea{
+    width:100%; resize:vertical; background:var(--input-bg); border:1px solid var(--border); border-radius:10px;
+    color:var(--text); padding:10px 12px; font-size:0.95rem; line-height:1.5; font-family:inherit; outline:none;
+  }
+  input:focus, textarea:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(201,162,39,0.15);}
+  select{background:var(--input-bg); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:7px 10px; font-size:0.82rem; font-family:inherit;}
+  select.full{width:100%; padding:10px 12px; font-size:0.95rem; border-radius:10px;}
+  .field{margin-bottom:12px;}
+  .row{display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; align-items:center;}
+  button{cursor:pointer; border:none; border-radius:10px; padding:10px 16px; font-size:0.9rem; font-weight:700; font-family:inherit; transition:transform .08s ease, opacity .15s ease;}
+  button:active{transform:scale(0.97);}
+  button:disabled{opacity:0.45; cursor:not-allowed;}
+  .btn-primary{background:var(--accent); color:#1B1503; box-shadow:0 4px 10px rgba(201,162,39,0.35);}
+  .btn-primary:hover{background:var(--accent-light);}
+  .btn-ghost{background:var(--panel); color:var(--text); border:1px solid var(--border);}
+  .btn-small{padding:6px 11px; font-size:0.78rem;}
+  .list{display:flex; flex-direction:column; gap:12px; margin-top:6px;}
+  .empty{color:var(--muted); font-size:0.85rem; padding:10px 2px;}
+  .item{background:var(--input-bg); border:1px solid var(--border); border-radius:12px; padding:14px 16px;}
+  .x-line{font-size:0.85rem; color:var(--bad); text-decoration:line-through; opacity:0.8; margin-bottom:6px;}
+  .o-line{font-size:1.02rem; margin-bottom:6px; line-height:1.5; color:var(--text); font-weight:600;}
+  .word-line{font-size:1.15rem; font-weight:800; margin-bottom:6px; color:var(--text);}
+  .kr-meaning{margin:-2px 0 8px; font-size:0.86rem; color:var(--muted);}
+  .explain-block{margin:0 0 10px; font-size:0.84rem; color:var(--body-text); line-height:1.6; background:#FCF6E3; border:1px solid #EFE0AE; border-radius:8px; padding:10px 12px; white-space:pre-line;}
+  .kr-text{color:var(--text);}
+  .kr-text-retry{color:var(--bad); cursor:pointer; text-decoration:underline dotted;}
+  .controls{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .score-badge{display:inline-flex; align-items:center; gap:6px; font-size:0.85rem; font-weight:700; padding:4px 10px; border-radius:999px; margin-left:auto;}
+  .score-badge.good{background:#E4F5EC; color:var(--good);}
+  .score-badge.mid{background:#FCF1DA; color:var(--warn);}
+  .score-badge.bad{background:#FBEAE8; color:var(--bad);}
+  .repeat-count-badge{display:inline-flex; align-items:center; gap:6px; font-size:0.85rem; font-weight:700; padding:4px 10px; border-radius:999px; background:#EFEAFB; color:var(--accent2);}
+  .word-compare{margin-top:10px; font-size:0.95rem; line-height:2.1;}
+  .word-compare span{padding:2px 6px; border-radius:6px; margin-right:2px; display:inline-block;}
+  .w-ok{background:#E4F5EC; color:var(--good);}
+  .w-miss{background:#FBEAE8; color:var(--bad); text-decoration:line-through;}
+  .w-extra{background:#FCF1DA; color:var(--warn);}
+  .heard{margin-top:8px; font-size:0.82rem; color:var(--muted);}
+  .rec-dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--bad); margin-right:6px; animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.25;}}
+  .item-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  footer{color:var(--muted); font-size:0.78rem; text-align:center; margin-top:28px; line-height:1.6;}
+  code{background:var(--input-bg); border:1px solid var(--border); padding:1px 6px; border-radius:5px; font-size:0.85em; color:var(--text);}
+  .variant-details{margin-top:12px; border-top:1px dashed var(--border); padding-top:10px;}
+  .variant-details summary{cursor:pointer; font-size:0.83rem; font-weight:700; color:var(--accent2);}
+  .variant-item{background:var(--bg); border:1px dashed var(--border); border-radius:10px; margin-top:8px; padding:10px 12px;}
+  .variant-item .o-line{font-size:0.92rem; margin-bottom:4px;}
+  .hidden{display:none !important;}
+  .top-bar{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px;}
+  .status{font-size:0.82rem; color:var(--muted); margin-top:8px;}
+  .status.error{color:var(--bad); font-weight:700;}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding:0 16px;">
+    <a href="index.html" class="home-link"><span class="home-icon">🏠</span> 영클원어민영어회화 홈으로</a>
+    <h1>🗣️ 내 쉐도잉 연습</h1>
+    <div class="sub">선생님이 등록해준 문장/단어로 듣기(TTS)와 따라 말하기(음성 인식)로 연습하세요. (Chrome 브라우저 권장 — 마이크 권한 필요)</div>
+  </div>
+</header>
+<div class="wrap">
+
+  <div class="card" id="secureWarning" style="display:none; border-top-color:var(--warn); background:#FCF1DA;">
+    <h2 style="margin-bottom:6px;">⚠️ 마이크 기능 안내</h2>
+    <div class="sub" style="margin:0;">이 페이지가 <code>https://</code> 주소가 아니라서 "따라 말하기"(마이크)가 정상 동작하지 않을 수 있어요. 듣기(TTS)는 정상 작동합니다.</div>
+  </div>
+
+  <!-- ============ 로그인 ============ -->
+  <div class="card" id="loginCard">
+    <h2>🔐 로그인</h2>
+    <div class="card-desc">선생님께 받은 아이디와 비밀번호로 로그인하세요.</div>
+    <div class="field">
+      <label for="usernameInput">아이디</label>
+      <input type="text" id="usernameInput" placeholder="아이디" autocomplete="username">
+    </div>
+    <div class="field">
+      <label for="passwordInput">비밀번호</label>
+      <input type="password" id="passwordInput" placeholder="비밀번호" autocomplete="current-password">
+    </div>
+    <div class="row">
+      <button class="btn-primary" id="loginBtn">로그인</button>
+    </div>
+    <div class="status" id="loginStatus"></div>
+  </div>
+
+  <!-- ============ 연습 화면 ============ -->
+  <div id="practiceArea" class="hidden">
+    <div class="top-bar">
+      <div class="sub" style="margin:0;"><b id="welcomeUsername"></b>님, 환영해요!</div>
+      <button class="btn-ghost btn-small" id="logoutBtn">로그아웃</button>
+    </div>
+
+    <div class="card">
+      <h2>🗂️ 회차 선택</h2>
+      <div class="card-desc">선생님이 등록해준 수업 회차 중 연습할 회차를 골라주세요. (최신 회차가 먼저 보여요)</div>
+      <select class="full" id="setSelect"></select>
+      <div class="status" id="setStatus"></div>
+    </div>
+
+    <div id="contentArea"></div>
+  </div>
+
+  <footer>
+    ⓘ 한글 번역은 구글 번역을 우선 사용하고(실패 시 MyMemory로 대체), 무료 API라 네트워크가 필요합니다.<br>
+    ⓘ 듣기(TTS)와 발음 인식(STT)은 브라우저의 Web Speech API를 사용하며, Chrome 데스크톱에서 가장 안정적으로 동작합니다.<br>
+    ⓘ 문법 설명은 외부 API 없이 규칙 기반으로 자동 생성되는 근사치입니다.
+  </footer>
+</div>
+
+<script src="js/shadowing-engine.js"></script>
+<script>
+const API = { login: '/api/member-login', sets: '/api/member-sets' };
+const TOKEN_KEY = 'shadowing_member_token';
+const USERNAME_KEY = 'shadowing_member_username';
+
+function getToken() { return localStorage.getItem(TOKEN_KEY); }
+function setSession(token, username) { localStorage.setItem(TOKEN_KEY, token); localStorage.setItem(USERNAME_KEY, username); }
+function clearSession() { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USERNAME_KEY); }
+
+async function apiFetch(url, opts = {}) {
+  const token = getToken();
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const res = await fetch(url, Object.assign({}, opts, { headers }));
+  let data = null;
+  try { data = await res.json(); } catch (e) {}
+  if (res.status === 401) {
+    clearSession();
+    showLogin();
+    throw new Error('로그인이 만료됐어요. 다시 로그인해주세요.');
+  }
+  if (!res.ok) throw new Error((data && (data.message || data.error)) || ('요청 실패 (HTTP ' + res.status + ')'));
+  return data;
+}
+
+function showLogin() {
+  document.getElementById('loginCard').classList.remove('hidden');
+  document.getElementById('practiceArea').classList.add('hidden');
+}
+function showPractice() {
+  document.getElementById('loginCard').classList.add('hidden');
+  document.getElementById('practiceArea').classList.remove('hidden');
+  document.getElementById('welcomeUsername').textContent = localStorage.getItem(USERNAME_KEY) || '';
+  loadSets();
+}
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const username = document.getElementById('usernameInput').value.trim();
+  const password = document.getElementById('passwordInput').value;
+  const statusEl = document.getElementById('loginStatus');
+  if (!username || !password) { statusEl.textContent = '⚠️ 아이디와 비밀번호를 모두 입력해주세요.'; statusEl.className = 'status error'; return; }
+  statusEl.textContent = '확인 중...'; statusEl.className = 'status';
+  try {
+    const res = await fetch(API.login, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || data.error || '로그인 실패');
+    setSession(data.token, data.username);
+    statusEl.textContent = '';
+    showPractice();
+  } catch (e) {
+    statusEl.textContent = '⚠️ 아이디 또는 비밀번호가 올바르지 않아요.';
+    statusEl.className = 'status error';
+  }
+});
+[document.getElementById('usernameInput'), document.getElementById('passwordInput')].forEach(el => {
+  el.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+});
+document.getElementById('logoutBtn').addEventListener('click', () => { clearSession(); showLogin(); });
+
+/* ===================== 회차 목록/내용 ===================== */
+
+const setSelect = document.getElementById('setSelect');
+const contentArea = document.getElementById('contentArea');
+
+async function loadSets() {
+  const statusEl = document.getElementById('setStatus');
+  statusEl.textContent = '불러오는 중...'; statusEl.className = 'status';
+  try {
+    const data = await apiFetch(API.sets);
+    const sets = data.sets || [];
+    setSelect.innerHTML = '';
+    if (!sets.length) {
+      setSelect.innerHTML = '<option value="">등록된 회차가 아직 없어요</option>';
+      statusEl.textContent = '선생님이 회차를 등록하면 여기에 나타나요.';
+      contentArea.innerHTML = '';
+      return;
+    }
+    sets.forEach(s => {
+      const dateStr = s.createdAt ? new Date(s.createdAt).toLocaleDateString('ko-KR') : '';
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = `${s.title} (${dateStr}) · 문장 ${s.sentenceCount} · 단어 ${s.wordCount}`;
+      setSelect.appendChild(opt);
+    });
+    statusEl.textContent = '';
+    loadSetContent(setSelect.value);
+  } catch (e) {
+    statusEl.textContent = '⚠️ ' + e.message;
+    statusEl.className = 'status error';
+  }
+}
+
+setSelect.addEventListener('change', () => loadSetContent(setSelect.value));
+
+async function loadSetContent(id) {
+  contentArea.innerHTML = '';
+  if (!id) return;
+  contentArea.innerHTML = '<div class="empty">불러오는 중...</div>';
+  try {
+    const data = await apiFetch(`${API.sets}?id=${encodeURIComponent(id)}`);
+    renderSet(data.set);
+  } catch (e) {
+    contentArea.innerHTML = `<div class="empty">⚠️ ${e.message}</div>`;
+  }
+}
+
+function renderSet(set) {
+  // 카드 렌더링(문장/단어/요약)은 admin.html의 미리보기와 완전히 같은 화면을 쓰도록
+  // js/shadowing-engine.js의 renderPracticeSet()으로 공용화했습니다.
+  ShadowingEngine.renderPracticeSet(contentArea, set);
+}
+
+/* ===================== 시작 ===================== */
+(function checkSecureContext(){
+  if (!ShadowingEngine.isSecureContextForMic()) document.getElementById('secureWarning').style.display = 'block';
+})();
+
+if (getToken()) showPractice(); else showLogin();
+</script>
+</body>
+</html>

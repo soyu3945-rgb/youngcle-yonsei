@@ -1,0 +1,9 @@
+{
+  "name": "youngcle-site",
+  "private": true,
+  "version": "1.0.0",
+  "description": "영클원어민영어회화 웹사이트 — Netlify Functions에서 사용하는 의존성",
+  "dependencies": {
+    "@netlify/blobs": "^8.2.0"
+  }
+}
