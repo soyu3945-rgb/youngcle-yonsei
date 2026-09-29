@@ -132,7 +132,7 @@
   <!-- ============ 문장 교정 쉐도잉 ============ -->
   <div class="card">
     <h2>① 문장 교정 쉐도잉</h2>
-    <div class="card-desc">원어민 피드백을 한 번에 여러 개 붙여넣거나, 한 쌍씩 추가할 수 있어요. ⚠️ 아래 "한 번에 추가"는 기존 문장 목록을 지우고 새로 붙여넣은 내용으로만 교체합니다.<br>✨ 교정된 문장마다 비슷한 표현 4개를 자동으로 만들어드려요(AI 사용 · 로그인 불필요 · 100% 무료, AI 연결이 안 되면 사전 기반으로 자동 대체). 각 표현도 그대로 듣기/따라 말하기 연습이 가능합니다.</div>
+    <div class="card-desc">원어민 피드백을 한 번에 여러 개 붙여넣거나, 한 쌍씩 추가할 수 있어요. 아래 "한 번에 추가"를 누르면 기존 문장 목록은 그대로 두고, 새로 붙여넣은 내용이 뒤에 이어서 추가됩니다.<br>✨ 교정된 문장마다 비슷한 표현 4개를 자동으로 만들어드려요(AI 사용 · 로그인 불필요 · 100% 무료, AI 연결이 안 되면 사전 기반으로 자동 대체). 각 표현도 그대로 듣기/따라 말하기 연습이 가능합니다.</div>
 
     <label for="bulkPasteArea">📋 여러 개 한 번에 붙여넣기 (한 줄에 문장 하나씩, "o:" 접두어는 없어도 됨)</label>
     <textarea id="bulkPasteArea" placeholder="I stayed at home today.
@@ -147,7 +147,7 @@ o: I stayed at home today."></textarea>
       <span style="font-size:0.82rem; color:var(--muted);">접두어 없이 <b>두 줄씩 짝</b>으로 되어 있어요 (홀수 줄 = 틀린 문장, 짝수 줄 = 맞는 문장). 체크하면 화면에는 맞는 문장만 보이고, 문법 해석은 그대로 만들어드려요. (기본으로 켜져 있어요 — 이미 맞는 문장들만 쭉 나열할 때는 체크를 꺼주세요.)</span>
     </label>
     <div class="row">
-      <button class="btn-primary" id="bulkAddBtn">📋 붙여넣은 내용으로 새로 만들기</button>
+      <button class="btn-primary" id="bulkAddBtn">📋 붙여넣은 내용 추가하기</button>
     </div>
     <div class="status" id="bulkStatus" style="font-size:0.82rem; color:var(--muted); margin-top:8px;"></div>
 
@@ -201,6 +201,19 @@ schedule"></textarea>
 
     <div class="list" id="wordList" style="margin-top:16px;"></div>
     <div class="empty" id="wordEmpty">아직 추가된 단어가 없어요.</div>
+  </div>
+
+  <!-- ============ 긴 문단 쉐도잉 (문장 자동 분리) ============ -->
+  <div class="card">
+    <h2>③ 긴 문단 쉐도잉 (문장 자동 분리)</h2>
+    <div class="card-desc">읽기 지문이나 긴 문단을 통째로 붙여넣으면 마침표(.), 물음표(?), 느낌표(!) 기준으로 문장을 자동으로 쪼개서, 문장마다 위 ①과 똑같은 듣기/따라 말하기 카드를 만들어줘요(번역, 비슷한 표현 4개도 그대로 제공돼요). 아래 버튼을 누르면 기존 문장 목록은 그대로 두고, 새로 쪼갠 문장이 뒤에 이어서 추가됩니다(Mr./Dr./e.g./3.14 같은 줄임말·소수점은 문장이 안 끊기도록 처리하지만, 100% 완벽하지는 않을 수 있어요).</div>
+
+    <label for="paragraphArea">📄 긴 문단 붙여넣기</label>
+    <textarea id="paragraphArea" style="min-height:140px;" placeholder="예: Last weekend, I visited my grandmother's house in the countryside. It was a long drive, but the scenery was beautiful. We had dinner together and talked about old memories. I felt really happy and relaxed after spending time with her."></textarea>
+    <div class="row">
+      <button class="btn-primary" id="paragraphSplitBtn">🧩 문장으로 쪼개서 추가하기</button>
+    </div>
+    <div class="status" id="paragraphStatus" style="font-size:0.82rem; color:var(--muted); margin-top:8px;"></div>
   </div>
 
   <!-- ============ 내보내기 / 백업 복원 ============ -->
@@ -375,38 +388,48 @@ function compareWords(target, heard) {
 // Builds the shared "듣기 / 따라 말하기" control block + wires up its behavior.
 // targetText = the text to listen to / compare pronunciation against.
 function buildShadowingControls(targetText) {
+  // 이전에는 "듣기 시작"(TTS)과 "따라 말하기"(STT) 버튼이 따로 있었는데, 이제 하나의 버튼으로
+  // 합쳐서 "원어민 음성 듣기 → 마이크로 따라 말하기"를 자동으로 이어서 반복합니다(둘 다 지원하는
+  // 브라우저 기준). TTS만 되는 브라우저는 듣기만, STT만 되는 경우(거의 없음)는 말하기만 반복합니다.
+  const defaultLabel = (hasTTS && hasSTT) ? '🗣️ 듣고 따라 말하기'
+    : hasTTS ? '🔊 듣기 시작'
+    : hasSTT ? '🎙️ 따라 말하기'
+    : '🗣️ 듣고 따라 말하기';
+  const disabledAttr = (hasTTS || hasSTT) ? '' : 'disabled title="이 브라우저는 TTS/음성 인식을 지원하지 않습니다(Chrome 권장)"';
+
   const wrap = document.createElement('div');
   wrap.innerHTML = `
     <div class="controls">
       <select class="rate-select">
-        <option value="1">보통 속도</option>
+        <option value="1" selected>보통 속도</option>
         <option value="0.8">약간 천천히</option>
-        <option value="0.6" selected>천천히</option>
+        <option value="0.6">천천히</option>
       </select>
       <span class="repeat-field" style="display:flex; align-items:center; gap:4px;">
         <input type="number" class="repeat-input" min="1" max="30" value="10" style="width:52px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:6px 8px; font-size:0.82rem; font-family:inherit;">
         <span style="font-size:0.78rem; color:var(--muted);">회 반복</span>
       </span>
-      <button class="btn-primary btn-small mic-btn" ${hasSTT ? '' : 'disabled title="이 브라우저는 음성 인식을 지원하지 않습니다(Chrome 권장)"'}>🎙️ 따라 말하기</button>
-      <button class="btn-ghost btn-small listen-btn" ${hasTTS ? '' : 'disabled title="이 브라우저는 TTS를 지원하지 않습니다"'}>🔊 듣기 시작</button>
+      <button class="btn-primary btn-small shadow-btn" ${disabledAttr}>${defaultLabel}</button>
+      ${hasSTT ? `<label class="mic-toggle-label" style="display:flex; align-items:center; gap:4px; font-size:0.78rem; color:var(--muted); cursor:pointer;" title="꺼두면 마이크 없이 듣기만 반복해요 (마이크가 안 될 때 사용하세요)">
+        <input type="checkbox" class="mic-toggle" checked style="cursor:pointer;">🎙️ 마이크
+      </label>` : ''}
       <span class="repeat-count-badge" style="display:none;"></span>
       <span class="score-badge" style="display:none;"></span>
     </div>
     <div class="heard" style="display:none;"></div>
     <div class="word-compare"></div>
   `;
-  const listenBtn = wrap.querySelector('.listen-btn');
   const rateSelect = wrap.querySelector('.rate-select');
   const repeatInput = wrap.querySelector('.repeat-input');
-  const micBtn = wrap.querySelector('.mic-btn');
+  const shadowBtn = wrap.querySelector('.shadow-btn');
+  const micToggle = wrap.querySelector('.mic-toggle');
   const scoreBadge = wrap.querySelector('.score-badge');
   const repeatCountBadge = wrap.querySelector('.repeat-count-badge');
   const heardEl = wrap.querySelector('.heard');
   const compareEl = wrap.querySelector('.word-compare');
 
-  let playState = { stopped: true };
-  let micState = { stopped: true, activeRecognition: null, pendingResume: null };
-  let shadowingCount = 0; // "따라 말하기"로 마이크에 목소리가 인식된 횟수(이 카드 한정, 페이지를 새로고침하면 0으로 돌아갑니다)
+  let state = { stopped: true, activeRecognition: null, pendingResume: null };
+  let shadowingCount = 0; // 마이크에 목소리가 인식된 횟수(이 카드 한정, 페이지를 새로고침하면 0으로 돌아갑니다)
 
   function speakOnce(rate) {
     return new Promise(resolve => {
@@ -422,42 +445,8 @@ function buildShadowingControls(targetText) {
     });
   }
 
-  listenBtn.addEventListener('click', async () => {
-    if (!hasTTS) return;
-
-    // Clicking again while playing stops the remaining repeats.
-    if (!playState.stopped) {
-      playState.stopped = true;
-      window.speechSynthesis.cancel();
-      listenBtn.textContent = '🔊 듣기 시작';
-      return;
-    }
-
-    // 다른 카드에서 재생하다 만 소리가 남아있으면 먼저 정리해서, 지금 누른 카드의 문장만 재생되게 합니다.
-    window.speechSynthesis.cancel();
-
-    let count = parseInt(repeatInput.value, 10);
-    if (!count || count < 1) count = 1;
-    if (count > 30) count = 30;
-    repeatInput.value = count;
-
-    playState = { stopped: false };
-    const rate = parseFloat(rateSelect.value);
-
-    for (let i = 1; i <= count; i++) {
-      if (playState.stopped) break;
-      listenBtn.textContent = count > 1 ? `⏹ 정지 (${i}/${count})` : '⏹ 정지';
-      await speakOnce(rate);
-      if (playState.stopped) break;
-      if (i < count) await new Promise(r => setTimeout(r, 500)); // 반복 사이 짧은 텀
-    }
-    playState.stopped = true;
-    listenBtn.textContent = '🔊 듣기 시작';
-  });
-
-  // 이 카드용 SpeechRecognition 인스턴스를 한 번만 만들어서 계속 재사용합니다. 반복(회 반복)마다,
-  // 또는 "따라 말하기"를 여러 번 눌러도 매번 새 인스턴스를 만들지 않게 해서, 크롬이 마이크 권한을
-  // 다시 물어보는 빈도를 크게 줄여줍니다.
+  // 이 카드용 SpeechRecognition 인스턴스를 한 번만 만들어서 계속 재사용합니다. 반복(회 반복)마다
+  // 매번 새 인스턴스를 만들지 않게 해서, 크롬이 마이크 권한을 다시 물어보는 빈도를 크게 줄여줍니다.
   let sharedRecognition = null;
   function getSharedRecognition() {
     if (!sharedRecognition) {
@@ -479,7 +468,7 @@ function buildShadowingControls(targetText) {
       const settle = (val) => { if (!settled) { settled = true; resolve(val); } };
 
       const recognition = getSharedRecognition();
-      micState.activeRecognition = recognition;
+      state.activeRecognition = recognition;
 
       let heard = null;
       recognition.onstart = () => { if (onReady) onReady(); };
@@ -500,49 +489,85 @@ function buildShadowingControls(targetText) {
       }
       return '⚠️ 마이크 권한이 거부됐어요. 주소창의 🔒 아이콘을 눌러 마이크 권한을 "허용"으로 바꾼 뒤 다시 시도해주세요.';
     }
+    if (errorCode === 'audio-capture') {
+      return '⚠️ 마이크 장치를 찾을 수 없어요. 컴퓨터/기기에 마이크가 연결되어 있는지 확인해주세요.';
+    }
     return null;
   }
 
-  micBtn.addEventListener('click', () => {
-    if (!hasSTT) return;
+  // 위 두 경우(권한 거부, 마이크 장치 없음)는 반복해도 소용없는 "계속되는" 문제라서, 루프를 완전히
+  // 멈추는 대신 마이크 체크박스를 자동으로 꺼서 듣기만 계속 이어가도록 합니다(모바일의 일시적인
+  // "다시 눌러야 하는" 정책 문제와는 다르게, 이건 재시도해도 똑같이 실패하기 때문입니다).
+  function isPersistentMicError(errorCode) {
+    return errorCode === 'not-allowed' || errorCode === 'service-not-allowed' || errorCode === 'audio-capture';
+  }
+
+  shadowBtn.addEventListener('click', () => {
+    if (!hasTTS && !hasSTT) return;
 
     // 진행 중일 때 다시 누르면 중단합니다.
-    if (!micState.stopped) {
-      micState.stopped = true;
-      if (micState.activeRecognition) { try { micState.activeRecognition.abort(); } catch (e) {} }
+    if (!state.stopped) {
+      state.stopped = true;
+      if (hasTTS) window.speechSynthesis.cancel();
+      if (state.activeRecognition) { try { state.activeRecognition.abort(); } catch (e) {} }
+      shadowBtn.innerHTML = defaultLabel;
       return;
     }
+
+    // 다른 카드에서 재생하다 만 소리가 남아있으면 먼저 정리해서, 지금 누른 카드의 문장만 재생되게 합니다.
+    if (hasTTS) window.speechSynthesis.cancel();
 
     // 모바일에서 "권한이 이미 있었는데 자동 반복 중 막힌" 경우, 이어서 할 시작 지점이 저장되어 있습니다.
     let startIndex = 1;
     let target;
-    if (micState.pendingResume) {
-      target = micState.pendingResume.target;
-      startIndex = micState.pendingResume.nextIndex;
-      micState.pendingResume = null;
+    if (state.pendingResume) {
+      target = state.pendingResume.target;
+      startIndex = state.pendingResume.nextIndex;
+      state.pendingResume = null;
     } else {
-      // "회 반복"에 설정된 횟수만큼 마이크 인식을 반복합니다(듣기 반복 횟수와 같은 입력칸을 공유해요).
       target = parseInt(repeatInput.value, 10);
       if (!target || target < 1) target = 1;
       if (target > 30) target = 30;
+      repeatInput.value = target;
     }
 
-    micState.stopped = false;
+    state.stopped = false;
     heardEl.style.display = 'none';
     scoreBadge.style.display = 'none';
     compareEl.innerHTML = '';
 
-    (async () => {
-      await warmupMic(); // 마이크 스트림을 미리 받아 붙잡아 둬서 권한 재요청을 줄입니다.
-      for (let i = startIndex; i <= target; i++) {
-        if (micState.stopped) break;
-        micBtn.innerHTML = `<span class="rec-dot"></span>마이크 준비 중... (${i}/${target})`;
+    const rate = parseFloat(rateSelect.value);
 
+    (async () => {
+      if (hasSTT && (!micToggle || micToggle.checked)) await warmupMic(); // 마이크 스트림을 미리 받아 붙잡아 둬서 권한 재요청을 줄입니다.
+
+      for (let i = startIndex; i <= target; i++) {
+        if (state.stopped) break;
+
+        // 1) 먼저 원어민 음성(TTS)으로 들려줍니다.
+        if (hasTTS) {
+          shadowBtn.innerHTML = `🔊 듣는 중... (${i}/${target})`;
+          await speakOnce(rate);
+          if (state.stopped) break;
+        }
+
+        // 이 브라우저가 음성 인식을 지원하지 않거나(드묾), 마이크 체크박스를 꺼뒀거나(마이크가 안 될 때
+        // 사용자가 직접 끔), 이전 반복에서 마이크 오류로 자동으로 꺼진 경우 — 듣기만 반복합니다.
+        const wantMic = hasSTT && (!micToggle || micToggle.checked);
+        if (!wantMic) {
+          if (i < target) await new Promise(r => setTimeout(r, 500));
+          continue;
+        }
+
+        if (hasTTS) await new Promise(r => setTimeout(r, 300)); // 듣기가 끝나고 말하기로 넘어가기 전 짧은 텀
+
+        // 2) 이어서 마이크로 따라 말하기를 받습니다.
+        shadowBtn.innerHTML = `<span class="rec-dot"></span>마이크 준비 중... (${i}/${target})`;
         const result = await runOneRecognition(() => {
           // 마이크가 실제로 듣기 시작한 순간에만 "말씀하세요"로 바꿔서, 학생이 이 시점부터 말하게 합니다.
-          if (!micState.stopped) micBtn.innerHTML = `<span class="rec-dot"></span>🗣️ 지금 말씀하세요! (${i}/${target})`;
+          if (!state.stopped) shadowBtn.innerHTML = `<span class="rec-dot"></span>🗣️ 지금 말씀하세요! (${i}/${target})`;
         });
-        if (micState.stopped) break;
+        if (state.stopped) break;
 
         if (result.ok) {
           shadowingCount++;
@@ -566,22 +591,29 @@ function buildShadowingControls(targetText) {
               // 이미 첫 시도에서는 마이크가 정상 작동했으므로, 진짜 권한 거부가 아니라
               // 모바일 브라우저가 "사용자가 방금 직접 누른 동작"에서만 마이크를 다시 허용하는 정책 때문일 가능성이 높습니다.
               heardEl.innerHTML = '📱 일부 모바일 브라우저는 보안 정책상 마이크를 자동으로 여러 번 연달아 켤 수 없어요. 아래 버튼을 다시 눌러서 이어가 주세요.';
-              micState.pendingResume = { nextIndex: i, target };
+              state.pendingResume = { nextIndex: i, target };
+              break;
+            } else if (isPersistentMicError(result.error)) {
+              // 권한 거부/마이크 장치 없음처럼 재시도해도 똑같이 실패할 오류는, 루프를 멈추지 않고
+              // 마이크 체크박스를 자동으로 꺼서 남은 반복은 듣기(TTS)만으로 계속 이어갑니다.
+              if (micToggle) micToggle.checked = false;
+              heardEl.innerHTML = permHTML + '<br>👉 마이크를 자동으로 끄고, 남은 반복은 듣기만 계속할게요. (다시 켜려면 위 "🎙️ 마이크" 체크박스를 눌러주세요.)';
             } else {
               heardEl.innerHTML = permHTML;
+              break;
             }
-            break; // 권한 문제(또는 모바일 정책)는 반복해도 소용없으니 여기서 멈춥니다.
+          } else {
+            heardEl.textContent = `⚠️ ${i}번째 시도에서 소리를 인식하지 못했어요 (${result.error}). 계속 진행합니다.`;
           }
-          heardEl.textContent = `⚠️ ${i}번째 시도에서 소리를 인식하지 못했어요 (${result.error}). 계속 진행합니다.`;
         }
 
-        if (!micState.stopped && i < target) await new Promise(r => setTimeout(r, 700)); // 다음 반복 전 짧은 텀(안드로이드는 마이크 재시작에 시간이 더 필요해서 조금 더 둡니다)
+        if (!state.stopped && i < target) await new Promise(r => setTimeout(r, 700)); // 다음 반복 전 짧은 텀(안드로이드는 마이크 재시작에 시간이 더 필요해서 조금 더 둡니다)
       }
-      micState.stopped = true;
-      micState.activeRecognition = null;
-      micBtn.innerHTML = micState.pendingResume
-        ? `🎙️ 이어서 따라 말하기 (${micState.pendingResume.nextIndex}/${target})`
-        : '🎙️ 따라 말하기';
+      state.stopped = true;
+      state.activeRecognition = null;
+      shadowBtn.innerHTML = state.pendingResume
+        ? `🎙️ 이어서 따라 말하기 (${state.pendingResume.nextIndex}/${target})`
+        : defaultLabel;
     })();
   });
 
@@ -647,6 +679,49 @@ function parseFeedbackBlock(text, pairMode) {
   return { newSentences, newWords };
 }
 
+
+/* ===================== 긴 문단 → 문장 자동 분리 (오프라인, 규칙 기반) ===================== */
+// 완벽한 문장 경계 검출기는 아니지만, Mr./Dr./e.g./i.e./a.m./p.m./3.14 같이 마침표가 문장의 끝이
+// 아닌 흔한 경우들을 우선 "보호"해뒀다가, 진짜 문장이 끝나는 지점(.!? 뒤에 공백 + 대문자/숫자/따옴표 등이
+// 오거나 문단 끝)에서만 잘라냅니다.
+const SENTENCE_ABBREVIATIONS = [
+  'mr','mrs','ms','dr','prof','sr','jr','st','vs','etc','inc','ltd','co',
+  'no','vol','fig','gen','rev','capt','col','gov','lt','maj','sgt','cmdr','approx'
+];
+
+function splitIntoSentences(text) {
+  const cleaned = (text || '').replace(/\s+/g, ' ').trim();
+  if (!cleaned) return [];
+
+  // 마침표가 "문장의 끝"이 아닌 경우(줄임말, 소수점, 말줄임표)를 임시 기호로 바꿔뒀다가
+  // 문장을 다 나눈 뒤에 마침표(.)/말줄임표(...)로 복원합니다.
+  const DOT_PH = '\x01';
+  const ELLIPSIS_PH = '\x02';
+  const BREAK = '\x03';
+
+  let t = cleaned;
+  // 1) 말줄임표(...) 보호 — 다른 규칙보다 먼저 처리
+  t = t.split('...').join(ELLIPSIS_PH);
+  // 2) 소수점 숫자 보호: 3.14 -> 3<DOT_PH>14 (나중에 복원)
+  t = t.replace(/(\d)\.(?=\d)/g, '$1' + DOT_PH);
+  // 3) e.g. / i.e. / a.m. / p.m. / U.S. / U.K. 처럼 "글자.글자." 형태로 이어지는 줄임말 보호
+  //    (마지막 글자 뒤의 마침표까지 포함해서 두 글자 모두 보호합니다)
+  t = t.replace(/\b([a-zA-Z])\.([a-zA-Z])\.(?=\s|$)/g, '$1' + DOT_PH + '$2' + DOT_PH);
+  // 4) Mr./Dr./St./etc. 같은 단어형 줄임말 보호
+  SENTENCE_ABBREVIATIONS.forEach(ab => {
+    const re = new RegExp('\\b(' + ab + ')\\.', 'gi');
+    t = t.replace(re, (m, p1) => p1 + DOT_PH);
+  });
+
+  // 5) 진짜 문장 경계로 보이는 자리에 구분자 삽입: 문장부호(.!?, 뒤에 닫는 따옴표/괄호 허용) 다음에
+  //    공백이 오고, 그 다음이 대문자/숫자/따옴표/여는괄호로 시작하면 새 문장으로 간주합니다.
+  t = t.replace(/([.!?]+(?:['"’”)\]]+)?)(\s+)(?=[A-Z0-9"'“‘(\[])/g, '$1' + BREAK);
+
+  const sentences = t.split(BREAK)
+    .map(s => s.split(DOT_PH).join('.').split(ELLIPSIS_PH).join('...').trim())
+    .filter(Boolean);
+  return sentences;
+}
 
 /* ===================== 문법 설명 엔진 (오프라인, 패턴 기반) ===================== */
 // 교정 전(x)/후(o) 문장을 비교해서, 왜 x가 어색했는지 한글로 설명합니다.
@@ -826,9 +901,13 @@ function buildSummaryText() {
     sentences.forEach((item, idx) => {
       lines.push('');
       lines.push(`[${idx + 1}]`);
-      if (item.x) lines.push(`교정 전: ${item.x}`);
-      lines.push(`교정 후: ${item.o}`);
-      if (item.x) lines.push(`문법 해석: ${explainDifference(item.x, item.o)}`);
+      if (item.x) {
+        lines.push(`교정 전: ${item.x}`);
+        lines.push(`교정 후: ${item.o}`);
+        lines.push(`문법 해석: ${explainDifference(item.x, item.o)}`);
+      } else {
+        lines.push(`문장: ${item.o}`);
+      }
     });
   }
   if (words.length) {
@@ -1212,20 +1291,52 @@ bulkAddBtn.addEventListener('click', () => {
     bulkStatus.textContent = '⚠️ x:/o: 형식을 찾지 못했어요. "x: 문장" / "o: 문장" 형식으로 붙여넣어주세요.';
     return;
   }
-  isStarterSentences = false;
-  // 새 교정 문장을 붙여넣으면 이전에 있던 문장 카드는 모두 지우고, 이번에 붙여넣은 문장들로만 새로 채웁니다.
+  // 새 교정 문장을 붙여넣으면, 처음 켜져 있던 예시 3개만 지우고(한 번만), 그 뒤로는 기존에
+  // 추가해둔 문장 카드는 그대로 둔 채 이번에 붙여넣은 문장들을 뒤에 이어서 추가합니다.
   if (newSentences.length) {
-    sentences = newSentences;
+    clearStarterSentencesIfNeeded();
+    sentences = sentences.concat(newSentences);
+  } else {
+    isStarterSentences = false;
   }
   words = words.concat(newWords);
   renderSentences();
   renderWords();
   bulkPasteArea.value = '';
-  bulkStatus.textContent = `✅ 문장 ${newSentences.length}개${newWords.length ? `, 단어 ${newWords.length}개` : ''}로 쉐도잉 목록을 새로 만들었어요.`;
+  bulkStatus.textContent = `✅ 문장 ${newSentences.length}개${newWords.length ? `, 단어 ${newWords.length}개` : ''}를 목록에 추가했어요.`;
 
-  // 새로 만들어진 목록의 맨 위(첫 카드)로 스크롤해서 바로 보이게 합니다.
-  if (newSentences.length && sentenceList.firstElementChild) {
-    sentenceList.firstElementChild.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // 새로 추가된 카드가 보이도록 목록의 맨 아래로 스크롤합니다.
+  if (newSentences.length && sentenceList.lastElementChild) {
+    sentenceList.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+});
+
+/* ===================== ③ 긴 문단 쉐도잉 (문장 자동 분리) ===================== */
+
+const paragraphArea = document.getElementById('paragraphArea');
+const paragraphSplitBtn = document.getElementById('paragraphSplitBtn');
+const paragraphStatus = document.getElementById('paragraphStatus');
+
+paragraphSplitBtn.addEventListener('click', () => {
+  const text = paragraphArea.value;
+  if (!text.trim()) { paragraphStatus.textContent = '붙여넣을 문단이 없어요.'; return; }
+
+  const newSentences = splitIntoSentences(text).map(s => ({ x: '', o: s }));
+  if (!newSentences.length) {
+    paragraphStatus.textContent = '⚠️ 문장을 찾지 못했어요. 마침표(.)/물음표(?)/느낌표(!)로 끝나는 문장인지 확인해주세요.';
+    return;
+  }
+
+  // 처음 켜져 있던 예시 3개만 지우고(한 번만), 그 뒤로는 기존에 추가해둔 문장 카드는 그대로 둔 채
+  // 새로 쪼갠 문장들을 뒤에 이어서 추가합니다(① 붙여넣기와 동일한 방식).
+  clearStarterSentencesIfNeeded();
+  sentences = sentences.concat(newSentences);
+  renderSentences();
+  paragraphArea.value = '';
+  paragraphStatus.textContent = `✅ 문장 ${newSentences.length}개로 쪼개서 목록에 추가했어요.`;
+
+  if (sentenceList.lastElementChild) {
+    sentenceList.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 });
 
