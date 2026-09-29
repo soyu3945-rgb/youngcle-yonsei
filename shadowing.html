@@ -517,6 +517,9 @@ function buildShadowingControls(targetText) {
     // 다른 카드에서 재생하다 만 소리가 남아있으면 먼저 정리해서, 지금 누른 카드의 문장만 재생되게 합니다.
     if (hasTTS) window.speechSynthesis.cancel();
 
+    // 삐 소리용 오디오를 버튼을 누른 이 순간에 준비해 둡니다(브라우저는 사용자가 직접 누른 동작 안에서만 소리 재생을 허용해요).
+    unlockBeep();
+
     // 모바일에서 "권한이 이미 있었는데 자동 반복 중 막힌" 경우, 이어서 할 시작 지점이 저장되어 있습니다.
     let startIndex = 1;
     let target;
@@ -565,7 +568,10 @@ function buildShadowingControls(targetText) {
         shadowBtn.innerHTML = `<span class="rec-dot"></span>마이크 준비 중... (${i}/${target})`;
         const result = await runOneRecognition(() => {
           // 마이크가 실제로 듣기 시작한 순간에만 "말씀하세요"로 바꿔서, 학생이 이 시점부터 말하게 합니다.
-          if (!state.stopped) shadowBtn.innerHTML = `<span class="rec-dot"></span>🗣️ 지금 말씀하세요! (${i}/${target})`;
+          if (!state.stopped) {
+            playBeep(); // "삐!" — 이제 말할 차례라는 신호
+            shadowBtn.innerHTML = `<span class="rec-dot"></span>🗣️ 지금 말씀하세요! (${i}/${target})`;
+          }
         });
         if (state.stopped) break;
 
@@ -618,6 +624,37 @@ function buildShadowingControls(targetText) {
   });
 
   return wrap;
+}
+
+/* ===================== "삐!" 신호음 (말할 차례 알림) ===================== */
+// 마이크가 실제로 듣기 시작해서 "지금 말씀하세요!"가 뜨는 순간 짧게 "삐!" 소리를 냅니다.
+// 별도 음원 파일 없이 브라우저의 Web Audio로 만들어요. 소리를 못 내는 환경이면 조용히 건너뜁니다.
+var beepCtx = null;
+function unlockBeep() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    if (!beepCtx) beepCtx = new Ctx();
+    if (beepCtx.state === 'suspended') beepCtx.resume();
+  } catch (e) {}
+}
+function playBeep() {
+  try {
+    unlockBeep();
+    if (!beepCtx) return;
+    const t = beepCtx.currentTime;
+    const osc = beepCtx.createOscillator();
+    const gain = beepCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 880; // 또렷한 "삐" 음높이
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.35, t + 0.01);
+    gain.gain.setValueAtTime(0.35, t + 0.17);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    osc.connect(gain).connect(beepCtx.destination);
+    osc.start(t);
+    osc.stop(t + 0.24);
+  } catch (e) {}
 }
 
 if (hasTTS) window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
